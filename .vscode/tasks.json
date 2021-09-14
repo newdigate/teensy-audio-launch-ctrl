@@ -1,0 +1,47 @@
+/*{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Clean",
+            "type": "shell",
+            "options": {
+                "cwd": "${workspaceRoot}"
+            },
+            "command": "rm -rf make-build-debug && mkdir make-build-debug && cd make-build-debug && cmake ${workspaceRoot} -DCMAKE_BUILD_TYPE=Debug",
+        },
+
+        {
+            "label": "make",
+            "type": "shell",
+            "command": "make",
+            "options": {
+                "cwd": "${workspaceRoot}/cmake-build-debug"
+            },
+            "problemMatcher": {
+                "base" : "$gcc",
+                "fileLocation" : "absolute"
+            },
+            
+            "group": {
+                "kind": "build",
+                "isDefault": true
+              }
+        },
+
+        {
+            "label": "Build",
+            "command": "${command:cmake.buildWithTarget}",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": {
+                "base" : "$gcc",
+                "fileLocation" : "absolute"
+            }
+        }
+    ]
+}
+        
+
+*/
