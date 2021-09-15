@@ -314,8 +314,8 @@ public:
 
                             case triggerctrlfunction::triggerctrlfunction_selectsample: {
                                 size_t num_samples = _filenames.size();
-                                size_t sampleIndex = round(data2 * num_samples / 128.0);
-                                if (strcmp(_selected_target->_filename, _filenames[sampleIndex]) != 0) {
+                                size_t sampleIndex = round(data2 * (num_samples-1) / 128.0);
+                                if (_selected_target->_filename == nullptr || strcmp(_selected_target->_filename, _filenames[sampleIndex]) != 0) {
                                     if (_selected_target->_filename) 
                                         delete [] _selected_target->_filename;
                                     if (sampleIndex >= num_samples )
