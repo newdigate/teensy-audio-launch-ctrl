@@ -13,7 +13,8 @@ set(HEADER_FILES
         sampleplaymidicontrollerenums.h
         sdsampleplayernote.h
         serialdisplay.h
-        st7735display.h)
+        st7735display.h
+        TeensyAudioLaunchCtrl.h)
 
 if (NOT DEFINED TEENSY_VERSION)
     include(CMakeLists.linux.cmake.in)

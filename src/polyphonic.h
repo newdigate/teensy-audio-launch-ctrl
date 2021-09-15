@@ -71,6 +71,17 @@ public:
         _voices.push_back(vu);
     }
 
+    void addVoices(TVoice **voices, uint8_t numOfVoicesToAdd){
+        for (int i = 0; i < numOfVoicesToAdd; i++){
+            addVoice(*voices[i]);
+        }
+    }
+    void addVoices(TVoice *voices, uint8_t numOfVoicesToAdd){
+        for (int i = 0; i < numOfVoicesToAdd; i++){
+            addVoice(voices[i]);
+        }
+    }
+
 private:
     std::vector<voice_usage<TVoice> *> _voices;
 };

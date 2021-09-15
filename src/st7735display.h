@@ -129,11 +129,11 @@ public:
 
         _tft.setCursor(0, row7_y1);
         _tft.print("trigger: ");
-        _tft.print(note->_indexOfNoteToPlay);
+        _tft.print(note->_triggertype);
 
         _tft.setCursor(0, row8_y1);
         _tft.print("loop: ");
-        _tft.print(note->_indexOfNoteToPlay);
+        _tft.print(note->_playlooptype);
     }
 
     void prompt(const char *text) override {
