@@ -268,7 +268,7 @@ public:
                             _state = playcontrollerstate::playcontrollerstate_editing;
                             _display.switchMode(_state);
                             if (_selected_target == nullptr) {
-                                _display.prompt("please select a midi note");
+                                _display.prompt("select a note");
                             } else 
                                 _display.editNote(_selected_target);
                         }
@@ -301,13 +301,14 @@ public:
 
                         switch (_selected_ctrl_function) {
                             case triggerctrlfunction::triggerctrlfunction_trigger: {
-                                triggertype triggerType = (triggertype)round(data2 * 4.0 / 128.0); 
-                                sdsampleplayernote *sample = getSamplerNoteForNoteNum(data1, channel);
+                                triggertype triggerType = (triggertype)round(data2 * 2.0 / 128.0); 
+                                sdsampleplayernote *sample = getSamplerNoteForNoteNum(_selected_target->_samplerNoteNumber, _selected_target->_samplerNoteChannel);
                                 if (sample) {
                                     if (triggerType != sample->_triggertype){
                                         sample->_triggertype = triggerType;
                                         Serial.printf("sample %d, %d changed trigger type to %d: %s\n", _selected_target->_samplerNoteNumber, _selected_target->_samplerNoteChannel, (int)triggerType, getTriggerTypeName(triggerType));
                                     }
+                                    _display.editNote(sample);
                                 }
                                 break;
                             }
@@ -330,11 +331,12 @@ public:
 
                             case triggerctrlfunction::triggerctrlfunction_direction:{
                                 playdirection playDirection = (playdirection) round( data2 / 128.0); 
-                                sdsampleplayernote *sample = getSamplerNoteForNoteNum(data1, channel);
+                                sdsampleplayernote *sample = getSamplerNoteForNoteNum(_selected_target->_samplerNoteNumber, _selected_target->_samplerNoteChannel);
                                 if (sample) {
                                     if (playDirection != sample->_playdirection){
                                         sample->_playdirection = playDirection;
-                                        Serial.printf("sample %d, %d changed play dir to %s\n", _selected_target->_samplerNoteNumber, _selected_target->_samplerNoteChannel, getPlayDirectionName(playDirection));
+                                        _display.editNote(sample);
+                                        //Serial.printf("sample %d, %d changed play dir to %s\n", _selected_target->_samplerNoteNumber, _selected_target->_samplerNoteChannel, getPlayDirectionName(playDirection));
                                     }
                                 }
                                 break;
@@ -342,11 +344,12 @@ public:
 
                             case triggerctrlfunction::triggerctrlfunction_looptype: {
                                 playlooptype playLoopType = (playlooptype)(round(data2 * 2.0 / 128.0)); 
-                                sdsampleplayernote *sample = getSamplerNoteForNoteNum(data1, channel);
+                                sdsampleplayernote *sample = getSamplerNoteForNoteNum(_selected_target->_samplerNoteNumber, _selected_target->_samplerNoteChannel);
                                 if (sample) {
                                     if (playLoopType != sample->_playlooptype){
                                         sample->_playlooptype = playLoopType;
-                                        Serial.printf("sample %d, %d changed loop type to %s\n", _selected_target->_samplerNoteNumber, _selected_target->_samplerNoteChannel, getPlayLoopTypeName(playLoopType));
+                                        _display.editNote(sample);
+                                        //Serial.printf("sample %d, %d changed loop type to %s\n", _selected_target->_samplerNoteNumber, _selected_target->_samplerNoteChannel, getPlayLoopTypeName(playLoopType));
                                     }
                                 }
                                 break;
@@ -409,6 +412,67 @@ public:
         }
         file.close();
     }
+
+    void update() {
+        for (auto && note : _samples) {
+            if (note->_voice != nullptr && !note->isPlaying && note->_voice->isPlaying())
+            {
+                note->isPlaying = true;
+            } else
+            if (note->_voice != nullptr && note->isPlaying && !note->_voice->isPlaying()) {
+                _polyphony.freeVoice(note->_voice);
+                note->_voice = nullptr;
+                note->isPlaying = false;
+            }
+        }
+    }
+
+    static const char* getCtrlFunctionName(triggerctrlfunction fn){
+        switch (fn) {
+            case triggerctrlfunction_direction: return "direction";
+            case triggerctrlfunction_looptype: return "loop";
+            case triggerctrlfunction_none: return "n/a";
+            case triggerctrlfunction_pan: return "pan";
+            case triggerctrlfunction_selectsample: return "sample";
+            case triggerctrlfunction_trigger: return "trigger";
+            case triggerctrlfunction_tune: return "tune";
+            case triggerctrlfunction_volume: return "volume";
+            default :
+                return "not sure?";
+        }
+    }
+    static const char* getTriggerTypeName(triggertype tt){
+        switch (tt) {
+            case triggertype_play_until_end: 
+                return "play until end";
+            case triggertype_play_until_subsequent_notedown:
+                return "toggle";
+            case triggertype_play_while_notedown: 
+                return "play while notedown";
+            default:
+                return "not sure?";
+        }
+    }   
+    static const char* getPlayDirectionName(playdirection pd){
+        switch (pd) {
+            case playdirection_begin_forward: 
+                return "begin forwards";
+            case playdirection_begin_backward:
+                return "begin backwards";
+            default:
+                return "not sure?";
+        }
+    }
+    static const char* getPlayLoopTypeName(playlooptype pd){
+        switch (pd) {
+            case playlooptype_once: return "play once";
+            case playlooptype_looping: return "looping";
+            case playlooptype_pingpong: return "ping-pong";
+            default:
+                return "not sure?";
+        }
+    }
+
 private:
     polyphonic<AudioPlaySdWav> &_polyphony;
     AbstractDisplay &_display;
@@ -475,51 +539,6 @@ private:
         return nullptr;
     }
 
-    static const char* getCtrlFunctionName(triggerctrlfunction fn){
-        switch (fn) {
-            case triggerctrlfunction_direction: return "direction";
-            case triggerctrlfunction_looptype: return "loop";
-            case triggerctrlfunction_none: return "n/a";
-            case triggerctrlfunction_pan: return "pan";
-            case triggerctrlfunction_selectsample: return "sample";
-            case triggerctrlfunction_trigger: return "trigger";
-            case triggerctrlfunction_tune: return "tune";
-            case triggerctrlfunction_volume: return "volume";
-            default :
-                return "not sure?";
-        }
-    }
-    static const char* getTriggerTypeName(triggertype tt){
-        switch (tt) {
-            case triggertype_play_until_end: 
-                return "play until end";
-            case triggertype_play_until_subsequent_notedown:
-                return "toggle";
-            case triggertype_play_while_notedown: 
-                return "play while notedown";
-            default:
-                return "not sure?";
-        }
-    }   
-    static const char* getPlayDirectionName(playdirection pd){
-        switch (pd) {
-            case playdirection_begin_forward: 
-                return "begin forwards";
-            case playdirection_begin_backward:
-                return "begin backwards";
-            default:
-                return "not sure?";
-        }
-    }
-    static const char* getPlayLoopTypeName(playlooptype pd){
-        switch (pd) {
-            case playlooptype_once: return "play once";
-            case playlooptype_looping: return "looping";
-            case playlooptype_pingpong: return "ping-pong";
-            default:
-                return "not sure?";
-        }
-    }
 
     void sampletrigger_received(sdsampleplayernote *sample) {        
 
@@ -538,9 +557,12 @@ private:
             case triggertype_play_until_subsequent_notedown: {
                 if (sample->_voice != nullptr) {
                     sample->_voice->stop();
+                    _polyphony.freeVoice(sample->_voice);
                     sample->_voice = nullptr;
+                    sample->isPlaying = false;
                 } else {
                     AudioPlaySdWav *voice = _polyphony.useVoice();
+                    voice->play(sample->_filename);
                     sample->_voice = voice;
                 }
                 break;

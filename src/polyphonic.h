@@ -24,6 +24,7 @@
 #define TEENSYAUDIO_LAUNCHCTRL_POLYPHONIC_H
 
 #include <vector>
+#include <stdint.h>
 
 template <typename TVoice>
 class voice_usage {

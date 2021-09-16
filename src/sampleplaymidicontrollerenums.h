@@ -38,11 +38,11 @@ enum ctrlkeyorcc {
 
 enum triggerctrlfunction {
     triggerctrlfunction_none = 0,
-    triggerctrlfunction_trigger = 1,
-    triggerctrlfunction_direction = 2,
-    triggerctrlfunction_looptype = 3,
-    triggerctrlfunction_selectsample = 4,
-    triggerctrlfunction_tune = 5,
+    triggerctrlfunction_selectsample = 1,
+    triggerctrlfunction_tune = 2,
+    triggerctrlfunction_trigger = 3,
+    triggerctrlfunction_looptype = 4,
+    triggerctrlfunction_direction = 5,
     triggerctrlfunction_volume = 6,
     triggerctrlfunction_pan = 7
 };

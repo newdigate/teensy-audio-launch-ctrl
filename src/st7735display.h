@@ -26,6 +26,7 @@
 #include <Arduino.h>
 #include <ST7735_t3.h>
 #include "sampleplaymidicontrollerenums.h"
+#include "sampleplaymidicontroller.h"
 #include "abstractdisplay.h"
 #include "extracolors.h"
 
@@ -72,7 +73,7 @@ public:
     
     void switchCtrlFunction(triggerctrlfunction newctrl) override {
         if (_selectedCtrl != -1) {
-            _tft.drawRoundRect(_ctrlhighlight_x1, _ctrlhighlight_y1, _ctrlhighlight_x2, _ctrlhighlight_height, 3, ST77XX_BLACK);
+            _tft.drawRect(_ctrlhighlight_x1, _ctrlhighlight_y1, _ctrlhighlight_x2, _ctrlhighlight_height, ST77XX_BLACK);
         }
         _ctrlhighlight_x1 = 0;
         _ctrlhighlight_x2 = 127;
@@ -102,7 +103,7 @@ public:
             default:
                 break;
         }
-        _tft.drawRoundRect(_ctrlhighlight_x1, _ctrlhighlight_y1, _ctrlhighlight_x2, _ctrlhighlight_height, 3, ST77XX_WHITE);
+        _tft.drawRect(_ctrlhighlight_x1, _ctrlhighlight_y1, _ctrlhighlight_x2, _ctrlhighlight_height, ST77XX_WHITE);
     }
 
     void editNote(sdsampleplayernote *note) override {
@@ -127,13 +128,15 @@ public:
         _tft.setCursor(0, row6_y1);
         _tft.print("tune: 1.0");
 
+        _tft.fillRect(0, row7_y1, 128, 8, ST7735_BLACK);
         _tft.setCursor(0, row7_y1);
         _tft.print("trigger: ");
-        _tft.print(note->_triggertype);
+        _tft.print(sdsampleplayermidicontroller::getTriggerTypeName( note->_triggertype));
 
+        _tft.fillRect(0, row8_y1, 128, 8, ST7735_BLACK);
         _tft.setCursor(0, row8_y1);
         _tft.print("loop: ");
-        _tft.print(note->_playlooptype);
+        _tft.print(sdsampleplayermidicontroller::getPlayLoopTypeName(note->_playlooptype));
     }
 
     void prompt(const char *text) override {

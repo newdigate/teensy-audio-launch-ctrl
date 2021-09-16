@@ -82,6 +82,7 @@ void setup() {
 
 void loop() {
     MIDI.read();
+    _controller.update();
     if (Serial.available()) {
         String s = Serial.readString();
         if (s == "r\n") {
