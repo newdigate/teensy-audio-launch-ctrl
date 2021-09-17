@@ -68,10 +68,15 @@ jobs:
         working-directory: ${{github.workspace}}/build
         run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE
 
-      - name: Build
+      - name: Build src
         working-directory: ${{github.workspace}}/build
         shell: bash
-        run: cmake --build . --config $BUILD_TYPE  --target tests      
+        run: cmake --build src --config $BUILD_TYPE   
+
+      - name: Build tests
+        working-directory: ${{github.workspace}}/build
+        shell: bash
+        run: cmake --build test --config $BUILD_TYPE   
 
       - name: Test
         working-directory: ${{github.workspace}}/build
