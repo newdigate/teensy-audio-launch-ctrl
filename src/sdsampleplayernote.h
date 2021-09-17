@@ -34,7 +34,7 @@ public:
     uint8_t _samplerNoteChannel = 0;    
     AudioPlaySdWav *_voice = nullptr;
     bool isPlaying = false;
-    triggertype _triggertype = triggertype::triggertype_play_until_end;
+    triggertype _triggertype = triggertype::triggertype_play_until_subsequent_notedown;
     playlooptype _playlooptype = playlooptype::playlooptype_once;
     playdirection _playdirection = playdirection::playdirection_begin_forward;
 
