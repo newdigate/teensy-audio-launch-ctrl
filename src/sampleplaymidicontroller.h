@@ -375,6 +375,7 @@ public:
                     case ctrlkeyorcc::ctrlkeyorcc_mode : {
                         if (isNoteOn) {
                             // the 'change mode' key was pressed - go back to performance mode
+                            writeSamples("samples.smp");
                             _state = playcontrollerstate_performing;
                             _display.switchMode(_state);
                         }
@@ -548,8 +549,10 @@ private:
                 AudioPlaySdWav *voice = _polyphony.useVoice();
                 if (voice != nullptr) {
                     voice->stop();
-                    voice->play(sample->_filename);
-                    sample->_voice = voice;
+                    if (sample->_filename != nullptr) {
+                        voice->play(sample->_filename);
+                        sample->_voice = voice;
+                    }
                 }
                 break;
             }
@@ -562,8 +565,10 @@ private:
                     sample->isPlaying = false;
                 } else {
                     AudioPlaySdWav *voice = _polyphony.useVoice();
-                    voice->play(sample->_filename);
-                    sample->_voice = voice;
+                    if (voice != nullptr && sample->_filename != nullptr) {
+                        voice->play(sample->_filename);
+                        sample->_voice = voice;
+                    } 
                 }
                 break;
             }
@@ -676,9 +681,15 @@ private:
     }
 
     void write_sample(File file, sdsampleplayernote *samplernote) {
-        size_t filename_length = strlen(samplernote->_filename);
-        varfieldWrite(file, filename_length);
-        file.write((const unsigned char *)samplernote->_filename, filename_length);
+        if (samplernote->_filename != nullptr) {
+            size_t filename_length = strlen(samplernote->_filename);
+            varfieldWrite(file, filename_length);
+            file.write((const unsigned char *)samplernote->_filename, filename_length);
+        } else 
+        {
+            const size_t filename_length = 0;
+            varfieldWrite(file, filename_length);            
+        }
         file.write( &(samplernote->_samplerNoteNumber), 1);
         file.write( &(samplernote->_samplerNoteChannel), 1);
         file.write( (const uint8_t *) &(samplernote->_playdirection), 1);
