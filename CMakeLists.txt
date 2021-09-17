@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(teensy-variable-playback)
+project(teensy-audio-launch-ctrl)
 if (NOT DEFINED TEENSY_VERSION)
     set(BUILD_FOR_LINUX 1)
     add_definitions(-DBUILD_FOR_LINUX)
