@@ -17,9 +17,6 @@ include_directories(${teensy_audio_x86_stubs_INCLUDE_DIR})
 find_package(teensy_x86_sd_stubs)
 include_directories(${teensy_x86_sd_stubs_INCLUDE_DIR})
 
-find_package(teensy_variable_playback)
-include_directories(${teensy_variable_playback_INCLUDE_DIR})
-
 find_package(teensy_x86_midi_stubs)
 include_directories(${teensy_x86_midi_stubs_INCLUDE_DIR})
 
