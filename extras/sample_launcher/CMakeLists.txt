@@ -30,8 +30,6 @@ include_directories(${RTMIDI_INCLUDE_DIR})
 find_package(teensy_x86_midi_stubs_rtmidi)
 include_directories(${teensy_x86_midi_stubs_rtmidi_INCLUDE_DIR})
 
-include_directories(${RTMIDI_INCLUDE_DIR})
-
 find_package(teensy_st7735_linux_stubs)
 include_directories(${teensy_st7735_linux_stubs_INCLUDE_DIR})
 
