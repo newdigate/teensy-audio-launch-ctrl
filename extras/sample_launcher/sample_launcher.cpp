@@ -15,8 +15,6 @@
 
 st7735_opengl tft = st7735_opengl(true, 20);
 
-MIDI_CREATE_RTMIDI_INSTANCE(RtMidiMIDI, rtMIDI,  MIDI);
-
 #define NUM_VOICES 4
 #define KEY_NOTENUMBER_C1 36
 
@@ -39,6 +37,8 @@ AudioConnection          patchCord8(playSdAudio1, 1, mixerRight, 0);
 AudioConnection          patchCord9(mixerLeft, 0, sio_out1, 0);
 AudioConnection          patchCord10(mixerRight, 0, sio_out1, 1);
 // GUItool: end automatically generated code
+
+MIDI_CREATE_RTMIDI_INSTANCE(RtMidiMIDI, rtMIDI,  MIDI);
 
 polyphonic<AudioPlaySdWav>    _sampler;
 ST7735Display                 _st7735display(tft);
