@@ -20,7 +20,8 @@ include_directories(../src)
 add_executable(tests
         polyphonicfixture.h
         test_polyphonic.cpp)
-
+        
+target_link_libraries(tests teensy_audio_launch_ctrl)
 target_link_libraries(tests ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
 target_link_libraries(tests ${teensy_x86_stubs_LIBS})
 target_link_libraries(tests ${teensy_audio_x86_stubs_LIBS})
