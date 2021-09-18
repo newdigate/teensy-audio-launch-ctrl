@@ -17,7 +17,8 @@ set(HEADER_FILES
         TeensyAudioLaunchCtrl.h)
 
 if (NOT DEFINED TEENSY_VERSION)
-    include(CMakeLists.linux.cmake.in)
+        SET(CMAKE_VERBOSE_MAKEFILE 1)
+        include(CMakeLists.linux.cmake.in)
 else()
     teensy_add_library(
             teensy_audio_launch_ctrl
