@@ -6,7 +6,7 @@ on:
       - 'LICENSE'
       - '.gitignore'
       - 'examples/**'
-      - '.github/workflows/teensy.yml'
+      - '.github/workflows/lib_teensy.yml'
 env:
   BUILD_TYPE: Release
 
