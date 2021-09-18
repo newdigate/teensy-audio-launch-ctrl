@@ -5,7 +5,7 @@
     "keywords": "sound, audio, sample, player",
     "description": "Teensy Audio Launch Ctrl",
     "url": "https://github.com/newdigate/teensy-audio-launch-ctrl",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "export": {
       "exclude": [
         ".vscode",
