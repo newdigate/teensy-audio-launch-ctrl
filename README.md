@@ -1,6 +1,6 @@
 # teensy audio launch control
 
-* play audio samples using usb midi controller
+* play audio samples on your teensy using a usb midi controller
 
 [![lib_teensy](https://github.com/newdigate/teensy-audio-launch-ctrl/actions/workflows/lib_teensy.yml/badge.svg)](https://github.com/newdigate/teensy-audio-launch-ctrl/actions/workflows/lib_teensy.yml)
 
