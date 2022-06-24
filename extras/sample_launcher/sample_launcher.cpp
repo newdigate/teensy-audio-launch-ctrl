@@ -125,12 +125,13 @@ int st7735_main(int numArgs, char **args) {
 
 void handleNoteOn(uint8_t channel, uint8_t pitch, uint8_t velocity)
 {
-    // Do whatever you want when a note is pressed.
+    // Do whatever you want when a note is pressed.    
     // Try to keep your callbacks short (no delays ect)
     // otherwise it would slow down the loop() and have a bad impact
     // on real-time performance.
     //uint8_t pitchMapped = pitch + ((channel-1) * 5);
     //_sampler.noteEvent(pitchMapped, velocity, true, false);
+    Serial.printf("key down: %d\n", pitch);
     _controller.midiChannleVoiceMessage(0x90, pitch, velocity, channel);
 }
 

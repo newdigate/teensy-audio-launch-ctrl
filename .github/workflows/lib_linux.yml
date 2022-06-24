@@ -7,6 +7,8 @@ on:
       - '.gitignore'
       - 'examples/**'
       - '.github/workflows/lib_teensy.yml'
+    branches-ignore:    
+    - 'feature/next'
 env:
   BUILD_TYPE: Release
 
