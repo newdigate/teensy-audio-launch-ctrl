@@ -18,16 +18,9 @@ Scene settingsScene = Scene(_bmp_settings_on, _bmp_settings_off, 16, 16);
 Scene editScene = Scene(_bmp_edit_on, _bmp_edit_off, 16, 16);
 Scene playScene = Scene(_bmp_play_on, _bmp_play_off, 16, 16);
 
+using namespace Bounce2;
 
-// encoder stuff
-long Position = 0, oldPosition = 0;
-long PositionY = 0, oldPositionY = 0;
-
-
-
-
-Bounce2::Button button = Bounce2::Button();
-
+Button button = Button();
 
 void ProcessMainMenu();
 void ProcessWirelessMenu();
@@ -37,9 +30,9 @@ void ProcessColorMenu();
 Encoder encoderLeftRight;
 Encoder encoderUpDown;
 
-st7735_opengl<Encoder, Bounce2::Button> Display(true, 20, &encoderLeftRight, &encoderUpDown, &button);
+st7735_opengl<Encoder, Button> Display(true, 20, &encoderLeftRight, &encoderUpDown, &button);
 
-SceneController< st7735_opengl<Encoder, Bounce2::Button>, Encoder > sceneController(Display, encoderLeftRight, encoderUpDown);
+SceneController< st7735_opengl<Encoder, Button>, Encoder, Button>  sceneController(Display, encoderLeftRight, encoderUpDown, button);
 
 void updateSettingsScene() {
   Display.fillScreen(ST7735_BLUE);
@@ -94,43 +87,8 @@ void setup() {
 
 void loop() {
   sceneController.Process();
-  if (!sceneController.Active()) {
-    bool enter = false;
-    // attempt to debouce these darn things...
-    while (Serial.available()) {
-      enter = true;
-      int r = Serial.read();
-    }
-
-    if (enter) {
-      sceneController.SetActive(true);
-      //Display.fillScreen(MENU_BACKGROUND);
-    } else {
-      sceneController.Update();
-    }
-  } else {   
-    bool exit = false;
-    // attempt to debouce these darn things...
-    while (Serial.available()) {
-      exit = true;
-      int r = Serial.read();
-    }
-    if (exit) {
-      sceneController.SetActive(false);      
-      //Display.fillScreen(MENU_BACKGROUND);
-    } 
-  }
 }
 
 int st7735_main(int numArgs, char **args) {
-    /*
-    if (numArgs < 2)
-    {
-        std::cout << "usage: " << args[0] << " <path-to-SDCard>" << std::endl;
-        arduino_should_exit = true;
-        exit(0);
-    }
-    std::cout << args[1] << std::endl;
-    SD.setSDCardFolderPath(args[1]); */
-    return 0;
+  return 0;
 }

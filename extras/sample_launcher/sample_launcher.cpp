@@ -13,7 +13,7 @@
 #include "RtMidiTransport.h"
 #include "output_soundio.h"
 
-st7735_opengl tft = st7735_opengl(true, 20);
+st7735_opengl_noinput tft = st7735_opengl_noinput(true, 20);
 
 #define NUM_VOICES 4
 #define KEY_NOTENUMBER_C1 36
@@ -60,7 +60,7 @@ void setup() {
         Serial.println("Unable to access the SD card...");
         delay(500);
     }
-    tft.initR(INITR_144GREENTAB); 
+    //tft.initR(INITR_144GREENTAB); 
 
     // Connect the handleNoteOn function to the library,
     // so it is called upon reception of a NoteOn.
