@@ -23,7 +23,6 @@
 #ifndef TEENSY_AUDIO_SAMPLER_SDSAMPLEPLAYERNOTE_H
 #define TEENSY_AUDIO_SAMPLER_SDSAMPLEPLAYERNOTE_H
 
-#include <Arduino.h>
 #include <Audio.h>
 #include "sampleplaymidicontrollerenums.h"
 

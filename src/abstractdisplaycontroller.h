@@ -26,7 +26,7 @@
 #include "sampleplaymidicontrollerenums.h"
 #include "sdsampleplayernote.h"
 
-class AbstractDisplay {
+class AbstractDisplayController {
 public:
     virtual void switchMode(playcontrollerstate newstate) = 0;
     virtual void switchCtrlFunction(triggerctrlfunction newctrl) = 0;

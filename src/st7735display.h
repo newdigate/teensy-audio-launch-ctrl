@@ -24,15 +24,15 @@
 #define TEENSY_AUDIO_SAMPLER_ST7735DISPLAY_H
 
 #include <Arduino.h>
-#include <ST7735_t3.h>
 #include "sampleplaymidicontrollerenums.h"
 #include "sampleplaymidicontroller.h"
-#include "abstractdisplay.h"
+#include "abstractdisplaycontroller.h"
 #include "extracolors.h"
+#include "View.h"
 
-class ST7735Display : public AbstractDisplay {
+class ST7735Display : public AbstractDisplayController {
 public:
-    ST7735Display(ST7735_t3 &tft) : _tft(tft) {
+    ST7735Display(View &tft) : _tft(tft) {
         tft.setTextWrap(false);
     }
 
@@ -157,7 +157,7 @@ public:
     }
 
 private:
-    ST7735_t3 &_tft;
+    View &_tft;
     int8_t _selectedCtrl = -1;
     uint8_t _ctrlhighlight_x1, _ctrlhighlight_y1, _ctrlhighlight_x2, _ctrlhighlight_height = 0;
 

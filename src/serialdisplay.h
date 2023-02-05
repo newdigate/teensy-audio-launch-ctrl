@@ -25,9 +25,9 @@
 
 #include <Arduino.h>
 #include "sampleplaymidicontrollerenums.h"
-#include "abstractdisplay.h"
+#include "abstractdisplaycontroller.h"
 
-class SerialDisplay : public AbstractDisplay {
+class SerialDisplay : public AbstractDisplayController {
 public:
     SerialDisplay(HardwareSerial &serialPort) : _serialPort(serialPort) {
 

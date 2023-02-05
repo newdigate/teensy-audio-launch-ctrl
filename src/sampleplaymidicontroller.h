@@ -24,12 +24,11 @@
 #define TEENSY_AUDIO_SAMPLER_SAMPLEPLAYMIDICONTROLLER_H
 
 #include <Arduino.h>
-#include <Audio.h>
 #include <vector>
 #include <map>
 #include <SD.h>
 #include "sampleplaymidicontrollerenums.h"
-#include "abstractdisplay.h"
+#include "abstractdisplaycontroller.h"
 #include "sdsampleplayernote.h" 
 #include "polyphonic.h"
 
@@ -198,7 +197,7 @@ private:
 
 class sdsampleplayermidicontroller {
 public:
-    sdsampleplayermidicontroller(polyphonic<AudioPlaySdWav> &polyphony, AbstractDisplay &display) : _polyphony(polyphony), _display(display) {
+    sdsampleplayermidicontroller(polyphonic<AudioPlaySdWav> &polyphony, AbstractDisplayController &display) : _polyphony(polyphony), _display(display) {
 
     }
 
@@ -476,7 +475,7 @@ public:
 
 private:
     polyphonic<AudioPlaySdWav> &_polyphony;
-    AbstractDisplay &_display;
+    AbstractDisplayController &_display;
     playcontrollerconfig _config;
     playcontrollerstate _state = playcontrollerstate::playcontrollerstate_initialising;
     sdsampleplayernote *_selected_target = nullptr;

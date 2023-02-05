@@ -25,6 +25,7 @@
 
 #include <vector>
 #include <stdint.h>
+#include <Arduino.h>
 
 template <typename TVoice>
 class voice_usage {
@@ -49,22 +50,46 @@ public:
     }
 
     TVoice* useVoice() {
+        //Serial.printf("use voice %d\n", _voicesInUse);
         for (auto v : _voices) {
             if (!v->_isActive) {
                 v->_isActive = true;
+                _voicesInUse++;
                 return &v->_voice;
             }
         } 
+
+        for (auto v : _voices) {
+            if ( v->_isActive) {
+                if( ! (&v->_voice)->isPlaying() ) {
+                    return &v->_voice;
+                }
+            } 
+        }
+
         return nullptr;
     }
 
     void freeVoice(TVoice* voice) {
+        Serial.printf("free voice %d\n", _voicesInUse);
+
         for (auto v : _voices) {
-            if (&v->_voice == voice) {
+            if ( v->_isActive) {
+                if( ! (&v->_voice)->isPlaying() ) {
+                    v->_isActive = false;
+                    _voicesInUse--;
+                }
+            } 
+        }
+        for (auto v : _voices) {
+            if (&v->_voice == voice && v->_isActive) {
                 v->_isActive = false;
+                _voicesInUse--;
                 return;
             }
         } 
+        
+
     }
 
     void addVoice(TVoice &voice) {   
@@ -85,6 +110,7 @@ public:
 
 private:
     std::vector<voice_usage<TVoice> *> _voices;
+    volatile int _voicesInUse = 0;
 };
 
 #endif //TEENSYAUDIO_LAUNCHCTRL_POLYPHONIC_H

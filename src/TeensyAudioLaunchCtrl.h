@@ -23,7 +23,7 @@
 #ifndef TEENSY_AUDIO_LAUNCHCTRL_TEENSYAUDIOLAUNCHCTRL_H
 #define TEENSY_AUDIO_LAUNCHCTRL_TEENSYAUDIOLAUNCHCTRL_H
 
-#include "abstractdisplay.h"
+#include "abstractdisplaycontroller.h"
 #include "extracolors.h"
 #include "polyphonic.h"
 #include "sampleplaymidicontroller.h"

@@ -13,6 +13,12 @@ include_directories(${teensy_audio_x86_stubs_INCLUDE_DIR})
 find_package(teensy_x86_sd_stubs)
 include_directories(${teensy_x86_sd_stubs_INCLUDE_DIR})
 
+find_package(teensy_gfx)
+include_directories(${teensy_gfx_INCLUDE_DIR})
+
+find_package(teensy_gfx_controls)
+include_directories(${teensy_gfx_controls_INCLUDE_DIR})
+
 add_library(teensy_audio_launch_ctrl STATIC
         ${HEADER_FILES}
         ${SOURCE_FILES}
