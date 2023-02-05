@@ -1,30 +1,28 @@
 #include <Arduino.h>
+
 #include <MIDI.h>
 #include "RtMidiMIDI.h"
 #include "RtMidiTransport.h"
+
 #include <ST7735_t3.h>
 #include <st7735_opengl.h>
 #include <st7735_opengl_main.h>
-#include "ST7735_t3.h"         // high speed display that ships with Teensy
+
 #include <Encoder.h>
 #include <Bounce2.h>
+#include <SD.h>
+
 #include "icons.h"
 #include "scenecontroller.h"
 #include "teensy_controls.h"
 #include "TFTPianoDisplay.h"
+#include "SamplerModel.h"
+
+newdigate::SamplerModel model;
 
 MIDI_CREATE_RTMIDI_INSTANCE(RtMidiMIDI, rtMIDI,  MIDI);
+
 #define DEBOUNCE    150
-
-//Scene(const uint16_t * iconOn, const uint16_t * iconOff, unsigned int iconWidth, unsigned int iconHeight) 
-
-// MOVED to icons.h:
-// this next rediciously long section is merely the icon image data
-// scroll down to 1560 or so for the actual code
-// Website for generating icons
-// https://javl.github.io/image2cpp/
-// all icons created at that site and copy / pasted here
-// '64_wireless', 64x64px
 
 using namespace Bounce2;
 Button button = Button();
@@ -36,16 +34,30 @@ SceneController< st7735_opengl<Encoder, Button>, Encoder, Button> sceneControlle
 
 void DrawSettingsMenuItem0(View *v);
 
+int _directionValue = 64;
+
 #define NUM_SETTINGS_MENU_ITEMS 20
-TeensyMenu settingsMenu = TeensyMenu( Display, 10, 10, 108, 108, ST7735_BLUE, ST7735_BLACK );
+TeensyMenu settingsMenu = TeensyMenu( Display, 0, 0, 128, 128, ST7735_BLUE, ST7735_BLACK );
 TeensyMenuItem settingMenuItems[NUM_SETTINGS_MENU_ITEMS] = {
-  TeensyMenuItem(settingsMenu, DrawSettingsMenuItem0, 16),
-  TeensyMenuItem(settingsMenu, [] (View *v) {v->drawString("Menu 2  ", 0, 0);}, 8),
-  TeensyMenuItem(settingsMenu, [] (View *v) {v->drawString("Menu 3  ", 0, 0);}, 8), 
-  TeensyMenuItem(settingsMenu, [] (View *v) {v->drawString("Menu 4  ", 0, 0);}, 8), 
-  TeensyMenuItem(settingsMenu, [] (View *v) {v->drawString("Menu 5  ", 0, 0);}, 8),
-  TeensyMenuItem(settingsMenu, [] (View *v) {v->drawString("Menu 6  ", 0, 0);}, 8), 
-  TeensyMenuItem(settingsMenu, [] (View *v) {v->drawString("Menu 7  ", 0, 0);}, 8),
+  TeensyMenuItem(settingsMenu, DrawSettingsMenuItem0, 20),
+  TeensyMenuItem(settingsMenu, 
+    [] (View *v) {
+      v->drawString("direction  ", 0, 0);
+      v->drawNumber(_directionValue, 100, 0);
+    }, 
+    8, 
+    [] (bool forward) { 
+      if (forward) _directionValue++; else _directionValue--; 
+    },
+    [] (bool noteDown, uint8_t channel, uint8_t pitch, uint8_t velocity) -> bool {
+      Serial.println("NoteDown...");
+      return true;
+    }),
+  TeensyMenuItem(settingsMenu, [] (View *v) {v->drawString("loop  ", 0, 0);}, 8), 
+  TeensyMenuItem(settingsMenu, [] (View *v) {v->drawString("pan  ", 0, 0);}, 8), 
+  TeensyMenuItem(settingsMenu, [] (View *v) {v->drawString("sample  ", 0, 0);}, 8),
+  TeensyMenuItem(settingsMenu, [] (View *v) {v->drawString("tune  ", 0, 0);}, 8), 
+  TeensyMenuItem(settingsMenu, [] (View *v) {v->drawString("volume  ", 0, 0);}, 8),
   TeensyMenuItem(settingsMenu, [] (View *v) {v->drawString("Menu 8  ", 0, 0);}, 8),
   TeensyMenuItem(settingsMenu, [] (View *v) {v->drawString("Menu 9  ", 0, 0);}, 8), 
   TeensyMenuItem(settingsMenu, [] (View *v) {v->drawString("Menu10  ", 0, 0);}, 8),
@@ -64,25 +76,52 @@ TeensyMenuItem settingMenuItems[NUM_SETTINGS_MENU_ITEMS] = {
   }, 8), 
 };
 
-TFTPianoDisplay pianoDisplay1(settingMenuItems[0], 3, 2, 0, 0); //tft, byte octaves, byte startOctave, byte x, byte y
+TFTPianoDisplay pianoDisplay1(settingMenuItems[0], 3, 2, 0, 9); //tft, byte octaves, byte startOctave, byte x, byte y
+
 void DrawSettingsMenuItem0(View *v) {
   pianoDisplay1.drawFullPiano();
+  settingMenuItems[0].drawString("trigger pad:  ", 0, 0);
 }
 
 Scene settingsScene = Scene(
                         _bmp_settings_on, 
                         _bmp_settings_off, 
                         16, 16, 
-                        [] { settingsMenu.Update(); pianoDisplay1.drawPiano();}, 
-                        [] { Display.fillScreen(ST7735_BLUE); settingsMenu.NeedsUpdate = true; pianoDisplay1.displayNeedsUpdating();},
-                        [] {} , // std::function<void()> buttonPressed = nullptr, 
-                        [] (bool forward) { if (forward) settingsMenu.IncreaseSelectedIndex(); else settingsMenu.DecreaseSelectedIndex(); }, //std::function<void(bool)> rotary1Changed = nullptr, 
-                        [] (bool forward) { },  //std::function<void(bool)> rotary2Changed = nullptr
+
+                        // void update()
+                        [] { 
+                          settingsMenu.Update();
+                          pianoDisplay1.drawPiano();
+                        }, 
+
+                        // void initScreen()
+                        [] { 
+                          Display.fillScreen(ST7735_BLUE); 
+                          settingsMenu.NeedsUpdate = true; 
+                          pianoDisplay1.displayNeedsUpdating();
+                        },
+
+                        // void buttonPressed()
+                        [] {}, 
+
+                        // void rotary1Changed(bool forward)
+                        [] (bool forward) { 
+                          if (forward) 
+                            settingsMenu.IncreaseSelectedIndex(); 
+                          else 
+                            settingsMenu.DecreaseSelectedIndex(); 
+                        }, 
+
+                        // void rotary1Changed(bool forward)
+                        [] (bool forward) {
+                          settingsMenu.ValueScroll(forward);
+                        },
+
+                        // bool midiNoteEvent(bool noteDown, uint8_t channel, uint8_t pitch, uint8_t velocity)
                         [] (bool noteDown, uint8_t channel, uint8_t pitch, uint8_t velocity) -> bool {
-                          Serial.println("Midi note down during settings scene...");
-                          return false;
-                        }
-                        );
+                          //Serial.println("Midi note down during settings scene...");
+                          return settingsMenu.MidiNoteEvent(noteDown, channel, pitch, velocity);
+                        });
 
 Scene editScene = Scene(
                         _bmp_edit_on, 
@@ -106,8 +145,6 @@ void setup() {
 
   Serial.begin(9600);
 
-  // while ((millis() > 5000) || (!Serial)) {}
-
   // button in the encoder
   //pinMode(SE_PIN, INPUT_PULLUP);
 
@@ -115,20 +152,12 @@ void setup() {
   //pinMode(LED_PIN, OUTPUT);
 
   button.attach( 10, 10 ); // USE EXTERNAL PULL-UP
-
-  // DEBOUNCE INTERVAL IN MILLISECONDS
   button.interval(5); 
-
-  // INDICATE THAT THE LOW STATE CORRESPONDS TO PHYSICALLY PRESSING THE BUTTON
   button.setPressedState(LOW); 
   
-  MIDI.setHandleNoteOn(handleNoteOn);  // Put only the name of the function
-
-  // Do the same for NoteOffs
+  MIDI.setHandleNoteOn(handleNoteOn); 
   MIDI.setHandleNoteOff(handleNoteOff);
-
   MIDI.setHandleControlChange(handleControlChange);
-  // Initiate MIDI communications, listen to all channels
   MIDI.begin(MIDI_CHANNEL_OMNI);
 
   delay(10);
@@ -143,10 +172,6 @@ void setup() {
 
   sceneController.SetCurrentSceneIndex(0);
   sceneController.SetActive(false);
-
-  //settingsScene.SetUpdateFunction(updateSettingsScene);
-  //editScene.SetUpdateFunction(updateEditScene);
-  //playScene.SetUpdateFunction(updatePlayScene);
 
   for (int i = 0; i < NUM_SETTINGS_MENU_ITEMS; i++) {
     settingsMenu.AddControl(&settingMenuItems[i]);
