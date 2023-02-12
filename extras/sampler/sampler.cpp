@@ -17,6 +17,7 @@
 #include "teensy_controls.h"
 #include "TFTPianoDisplay.h"
 #include "SamplerModel.h"
+#include "EditScene.h"
 
 newdigate::SamplerModel model;
 
@@ -28,16 +29,18 @@ using namespace Bounce2;
 Button button = Button();
 Encoder encoderLeftRight;
 Encoder encoderUpDown;
+typedef st7735_opengl<Encoder, Button> st7735_ogl;
+typedef SceneController< st7735_opengl<Encoder, Button>, Encoder, Button> MySceneController;
 
-st7735_opengl<Encoder, Button> Display(true, 20, &encoderLeftRight, &encoderUpDown, &button);
-SceneController< st7735_opengl<Encoder, Button>, Encoder, Button> sceneController(Display, encoderLeftRight, encoderUpDown, button);
+st7735_ogl _display(true, 20, &encoderLeftRight, &encoderUpDown, &button);
+MySceneController sceneController(_display, encoderLeftRight, encoderUpDown, button);
 
 void DrawSettingsMenuItem0(View *v);
 
 int _directionValue = 64;
 
 #define NUM_SETTINGS_MENU_ITEMS 20
-TeensyMenu settingsMenu = TeensyMenu( Display, 0, 0, 128, 128, ST7735_BLUE, ST7735_BLACK );
+TeensyMenu settingsMenu = TeensyMenu( _display, 0, 0, 128, 128, ST7735_BLUE, ST7735_BLACK );
 TeensyMenuItem settingMenuItems[NUM_SETTINGS_MENU_ITEMS] = {
   TeensyMenuItem(settingsMenu, DrawSettingsMenuItem0, 20),
   TeensyMenuItem(settingsMenu, 
@@ -83,6 +86,8 @@ void DrawSettingsMenuItem0(View *v) {
   settingMenuItems[0].drawString("trigger pad:  ", 0, 0);
 }
 
+newdigate::EditScene editScene(model, _display);
+
 Scene settingsScene = Scene(
                         _bmp_settings_on, 
                         _bmp_settings_off, 
@@ -96,7 +101,7 @@ Scene settingsScene = Scene(
 
                         // void initScreen()
                         [] { 
-                          Display.fillScreen(ST7735_BLUE); 
+                          _display.fillScreen(ST7735_BLUE); 
                           settingsMenu.NeedsUpdate = true; 
                           pianoDisplay1.displayNeedsUpdating();
                         },
@@ -123,19 +128,12 @@ Scene settingsScene = Scene(
                           return settingsMenu.MidiNoteEvent(noteDown, channel, pitch, velocity);
                         });
 
-Scene editScene = Scene(
-                        _bmp_edit_on, 
-                        _bmp_edit_off, 
-                        16, 16,
-                        [] { }, 
-                        [] { Display.fillScreen(ST7735_RED); });
-
 Scene playScene = Scene(
                         _bmp_play_on, 
                         _bmp_play_off, 
                         16, 16,
                         [] { }, 
-                        [] { Display.fillScreen(ST7735_GREEN); });                
+                        [] { _display.fillScreen(ST7735_GREEN); });                
 
 void handleNoteOn(uint8_t channel, uint8_t pitch, uint8_t velocity);
 void handleNoteOff(uint8_t channel, uint8_t pitch, uint8_t velocity);
@@ -162,9 +160,9 @@ void setup() {
 
   delay(10);
   //Display.initR(INITR_GREENTAB);
-  Display.setRotation(1);
+  _display.setRotation(1);
 
-  Display.fillScreen(ST7735_BLACK);
+  _display.fillScreen(ST7735_BLACK);
 
   sceneController.AddScene(&settingsScene);
   sceneController.AddScene(&editScene);
