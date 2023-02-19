@@ -18,6 +18,11 @@
 #include "TFTPianoDisplay.h"
 #include "SamplerModel.h"
 #include "EditScene.h"
+#include "DirectoryFileNameCache.h"
+#include "WavePreviewBuilder.h"
+
+
+SDClass sd = SDClass("/Users/nicholasnewdigate/Development/sampler");
 
 newdigate::SamplerModel model;
 
@@ -38,6 +43,7 @@ MySceneController sceneController(_display, encoderLeftRight, encoderUpDown, but
 void DrawSettingsMenuItem0(View *v);
 
 int _directionValue = 64;
+newdigate::WavePreviewBuilder _wavePreviewBuilder(sd);
 
 #define NUM_SETTINGS_MENU_ITEMS 20
 TeensyMenu settingsMenu = TeensyMenu( _display, 0, 0, 128, 128, ST7735_BLUE, ST7735_BLACK );
@@ -86,7 +92,9 @@ void DrawSettingsMenuItem0(View *v) {
   settingMenuItems[0].drawString("trigger pad:  ", 0, 0);
 }
 
-newdigate::EditScene editScene(model, _display);
+newdigate::DirectoryFileNameCache directoryFileNameCache(sd);
+
+newdigate::EditScene editScene(model, _display, directoryFileNameCache, sd);
 
 Scene settingsScene = Scene(
                         _bmp_settings_on, 
@@ -180,7 +188,6 @@ void loop() {
   sceneController.Process();
   MIDI.read();
 }
-
 
 int st7735_main(int numArgs, char **args) {
     /*
