@@ -249,7 +249,7 @@ public:
                     case ctrlkeyorcc::ctrlkeyorcc_none: {
                         // not a function key - regular performance note...
                         // try find a sample mapping for this fellow
-                        sdsampleplayernote *sample = getSamplerNoteForNoteNum(data1, channel);
+                        sdsampleplayernote<AudioPlaySdWav> *sample = getSamplerNoteForNoteNum(data1, channel);
                         if (sample) {
                             if (isNoteOn) {
                                 sampletrigger_received(sample);

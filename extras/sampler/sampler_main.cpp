@@ -23,9 +23,31 @@
 #include "WavePreviewBuilder.h"
 #include <TeensyAudioLaunchCtrl.h>
 #include <TeensyVariablePlayback.h>
+#include "output_soundio.h"
 #include "Sampler.h"
 
 SDClass sd = SDClass("/Users/nicholasnewdigate/Development/sampler");
+
+// GUItool: begin automatically generated code
+AudioPlaySdResmp           playSdAudio3(sd);     //xy=334.0000457763672,459.0000305175781
+AudioPlaySdResmp           playSdAudio2(sd);     //xy=338.0000305175781,382.0000305175781
+AudioPlaySdResmp           playSdAudio4(sd);     //xy=339.0000457763672,536
+AudioPlaySdResmp           playSdAudio1(sd);     //xy=340.0000419616699,302.0000238418579
+AudioMixer4              mixerLeft;         //xy=650.0000419616699,404.0000238418579
+AudioMixer4              mixerRight;         //xy=650.0000610351562,511.0000305175781
+AudioOutputSoundIO       sio_out1;       //xy=958.0000610351562,466.0000305175781
+AudioConnection          patchCord1(playSdAudio3, 0, mixerLeft, 2);
+AudioConnection          patchCord2(playSdAudio3, 1, mixerRight, 2);
+AudioConnection          patchCord3(playSdAudio2, 0, mixerLeft, 1);
+AudioConnection          patchCord4(playSdAudio2, 1, mixerRight, 1);
+AudioConnection          patchCord5(playSdAudio4, 0, mixerLeft, 3);
+AudioConnection          patchCord6(playSdAudio4, 1, mixerRight, 3);
+AudioConnection          patchCord7(playSdAudio1, 0, mixerLeft, 0);
+AudioConnection          patchCord8(playSdAudio1, 1, mixerRight, 0);
+AudioConnection          patchCord9(mixerLeft, 0, sio_out1, 0);
+AudioConnection          patchCord10(mixerRight, 0, sio_out1, 1);
+// GUItool: end automatically generated code
+
 
 newdigate::SamplerModel model;
 
@@ -99,7 +121,7 @@ void DrawSettingsMenuItem0(View *v) {
 
 newdigate::DirectoryFileNameCache directoryFileNameCache(sd);
 
-newdigate::EditScene editScene(model, _display, directoryFileNameCache, sd);
+newdigate::EditScene editScene(model, _display, directoryFileNameCache, sd, _sampler);
 
 Scene settingsScene = Scene(
                         _bmp_settings_on, 
@@ -156,6 +178,11 @@ void setup() {
 
   Serial.begin(9600);
 
+  while (!(sd.begin(10))) {
+        // stop here if no SD card, but print a message
+        Serial.println("Unable to access the SD card...");
+        delay(500);
+    }
   // button in the encoder
   //pinMode(SE_PIN, INPUT_PULLUP);
 
@@ -187,6 +214,12 @@ void setup() {
   for (int i = 0; i < NUM_SETTINGS_MENU_ITEMS; i++) {
     settingsMenu.AddControl(&settingMenuItems[i]);
   }
+  _polyphony.addVoice(playSdAudio1);
+  _polyphony.addVoice(playSdAudio2);
+  _polyphony.addVoice(playSdAudio3);
+  _polyphony.addVoice(playSdAudio4);
+  
+  AudioMemory(20);
 }
 
 void loop() {
@@ -210,7 +243,7 @@ int st7735_main(int numArgs, char **args) {
 void handleNoteOn(uint8_t channel, uint8_t pitch, uint8_t velocity)
 {
     bool processedMessage = sceneController.MidiNoteUpDown(true, channel, pitch, velocity);
-    if (processedMessage) return;
+    //if (processedMessage) return;
 
     _sampler.midiChannleVoiceMessage(0x90, pitch, velocity, channel);
 }

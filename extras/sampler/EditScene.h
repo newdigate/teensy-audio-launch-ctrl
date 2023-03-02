@@ -16,6 +16,7 @@
 #include "TFTPianoDisplay.h"
 #include "DirectoryFileNameCache.h"
 #include "WavePreview.h"
+#include "Sampler.h"
 
 namespace newdigate {
 
@@ -23,7 +24,7 @@ namespace newdigate {
 
     class EditScene : public BaseScene {
     public:
-        EditScene(SamplerModel &samplerModel, View &view, DirectoryFileNameCache &directoryFileNameCache, SDClass &sd) : 
+        EditScene(SamplerModel &samplerModel, View &view, DirectoryFileNameCache &directoryFileNameCache, SDClass &sd, Sampler &sampler) : 
             BaseScene(
                 _bmp_edit_on, 
                 _bmp_edit_off,
@@ -138,7 +139,9 @@ namespace newdigate {
             _currentNote(nullptr),
             _pianoDisplay(_view, 2, 0, 48, 9), //tft, byte octaves, byte startOctave, byte x, byte y
             _directoryFileNameCache(directoryFileNameCache),
-            _wavePreview(_view, sd, 128, 20, 0, 28)
+            _wavePreview(_view, sd, 128, 20, 0, 28),
+            _sampler(sampler),
+            _playbackProgressSubscriptions()
         {
             for (int i = 0; i < NUM_EDIT_MENU_ITEMS; i++) {
                 _settingsMenu.AddControl(&_settingMenuItems[i]);
@@ -178,6 +181,9 @@ namespace newdigate {
         bool HandleNoteOnOff(bool noteDown, uint8_t channel, uint8_t pitch, uint8_t velocity) override { 
             if (noteDown == false)
                 return true;
+            for (auto && sub : _playbackProgressSubscriptions) {
+                _sampler.unregisterProgressCallback(sub);
+            }
             _pianoDisplay.reset();
             _pianoDisplay.keyDown(pitch);
             _pianoDisplay.setBaseOctave(pitch/12);
@@ -186,7 +192,11 @@ namespace newdigate {
             if (_currentNote == nullptr) {
                 _currentNote = _samplerModel.allocateNote(channel, pitch);
             }
-            
+            if (_currentNote->_filename != nullptr){
+                _playbackProgressSubscriptions.push_back(
+                    _sampler.registerProgressCallback(_currentNote->_filename, _view._width, [&] (unsigned index, unsigned sampleNumber) { } )
+                );
+            }
             _settingsMenu.NeedsUpdate = true; 
             _settingsMenu.Update();
             _triggerNoteControlNeedsUpdate = true;
@@ -212,6 +222,8 @@ namespace newdigate {
         TFTPianoDisplay<View> _pianoDisplay; //tft, byte octaves, byte startOctave, byte x, byte y
         DirectoryFileNameCache& _directoryFileNameCache;
         WavePreview _wavePreview;
+        Sampler &_sampler;
+        std::vector<unsigned int> _playbackProgressSubscriptions;
 
     };
 

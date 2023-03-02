@@ -32,7 +32,7 @@ public:
     virtual void switchCtrlFunction(triggerctrlfunction newctrl) = 0;
     virtual void prompt(const char *text) = 0;
     virtual void displayFileName(const char *text) = 0;
-    virtual void editNote(sdsampleplayernote *note) = 0;
+    virtual void editNote(sdsampleplayernote<AudioPlaySdResmp> *note) = 0;
 };
 
 #endif // TEENSY_AUDIO_SAMPLER_ABSTRACTDISPLAY_H
