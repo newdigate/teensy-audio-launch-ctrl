@@ -21,11 +21,11 @@ namespace newdigate
             }
         }
 
-        sdsampleplayernote* getNoteForChannelAndKey(uint8_t channel, uint8_t note) {
+        sdsampleplayernote<AudioPlaySdResmp>* getNoteForChannelAndKey(uint8_t channel, uint8_t note) {
             if (_channelNotes.find(channel) == _channelNotes.end() ) {
                 return nullptr;
             }
-            std::map<uint8_t, sdsampleplayernote*>* channelNotes = _channelNotes[channel];
+            std::map<uint8_t, sdsampleplayernote<AudioPlaySdResmp>*>* channelNotes = _channelNotes[channel];
             if (channelNotes->find(note) == channelNotes->end()){
                 return nullptr;
             }
@@ -33,19 +33,19 @@ namespace newdigate
             return (*channelNotes)[note];
         }
 
-        sdsampleplayernote* allocateNote(uint8_t channel, uint8_t note) {
+        sdsampleplayernote<AudioPlaySdResmp>* allocateNote(uint8_t channel, uint8_t note) {
             if (getNoteForChannelAndKey(channel, note) != nullptr){
                 // note is already allocated
                 return nullptr;
             }
-            std::map<uint8_t, sdsampleplayernote*>* channelNotes = nullptr;
+            std::map<uint8_t, sdsampleplayernote<AudioPlaySdResmp>*>* channelNotes = nullptr;
             if (_channelNotes.find(channel) == _channelNotes.end() ) {
-                channelNotes = new std::map<uint8_t, sdsampleplayernote*>();
+                channelNotes = new std::map<uint8_t, sdsampleplayernote<AudioPlaySdResmp>*>();
                 _channelNotes[channel] = channelNotes;
             } else
                 channelNotes = _channelNotes[channel];
 
-            sdsampleplayernote *samplerNote = new sdsampleplayernote();
+            sdsampleplayernote<AudioPlaySdResmp> *samplerNote = new sdsampleplayernote<AudioPlaySdResmp>();
             samplerNote->_samplerNoteChannel = channel;
             samplerNote->_samplerNoteNumber = note;
             (*channelNotes)[note] = samplerNote;
@@ -54,7 +54,7 @@ namespace newdigate
 
 
     private:
-        std::map<uint8_t, std::map<uint8_t, sdsampleplayernote*>*> _channelNotes;
+        std::map<uint8_t, std::map<uint8_t, sdsampleplayernote<AudioPlaySdResmp>*>*> _channelNotes;
     };
 
 } // namespace newdigate

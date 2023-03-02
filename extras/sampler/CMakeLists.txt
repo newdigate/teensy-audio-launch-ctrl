@@ -27,6 +27,9 @@ include_directories(${teensy_x86_sd_stubs_INCLUDE_DIR})
 find_package(teensy_x86_midi_stubs)
 include_directories(${teensy_x86_midi_stubs_INCLUDE_DIR})
 
+find_package(teensy_variable_playback)
+include_directories(${teensy_variable_playback_INCLUDE_DIR})
+
 find_path(RTMIDI_INCLUDE_DIR RtMidi.h
   PATHS
     /usr/local/include
@@ -57,7 +60,7 @@ include_directories(../../src)
 add_definitions(-fms-extensions)
 add_definitions(-DArduino=146)
 
-add_executable(sampler sampler.cpp)
+add_executable(sampler sampler_main.cpp)
 
 target_link_libraries(sampler ${teensy_x86_stubs_LIBS})
 target_link_libraries(sampler ${teensy_x86_sd_stubs_LIBS})

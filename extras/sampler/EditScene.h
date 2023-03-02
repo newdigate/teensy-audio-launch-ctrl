@@ -208,7 +208,7 @@ namespace newdigate {
         bool _triggerNoteControlNeedsUpdate;
         TeensyControl _triggerNoteControl;
         TeensyMenuItem _settingMenuItems[NUM_EDIT_MENU_ITEMS];
-        sdsampleplayernote *_currentNote;
+        sdsampleplayernote<AudioPlaySdResmp> *_currentNote;
         TFTPianoDisplay<View> _pianoDisplay; //tft, byte octaves, byte startOctave, byte x, byte y
         DirectoryFileNameCache& _directoryFileNameCache;
         WavePreview _wavePreview;

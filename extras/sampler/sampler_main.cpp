@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <Audio.h>
 
 #include <MIDI.h>
 #include "RtMidiMIDI.h"
@@ -20,7 +21,9 @@
 #include "EditScene.h"
 #include "DirectoryFileNameCache.h"
 #include "WavePreviewBuilder.h"
-
+#include <TeensyAudioLaunchCtrl.h>
+#include <TeensyVariablePlayback.h>
+#include "Sampler.h"
 
 SDClass sd = SDClass("/Users/nicholasnewdigate/Development/sampler");
 
@@ -36,7 +39,9 @@ Encoder encoderLeftRight;
 Encoder encoderUpDown;
 typedef st7735_opengl<Encoder, Button> st7735_ogl;
 typedef SceneController< st7735_opengl<Encoder, Button>, Encoder, Button> MySceneController;
+polyphonic<AudioPlaySdResmp> _polyphony;
 
+newdigate::Sampler _sampler = newdigate::Sampler(model, _polyphony);
 st7735_ogl _display(true, 20, &encoderLeftRight, &encoderUpDown, &button);
 MySceneController sceneController(_display, encoderLeftRight, encoderUpDown, button);
 
@@ -204,12 +209,16 @@ int st7735_main(int numArgs, char **args) {
 
 void handleNoteOn(uint8_t channel, uint8_t pitch, uint8_t velocity)
 {
-    sceneController.MidiNoteUpDown(true, channel, pitch, velocity);
+    bool processedMessage = sceneController.MidiNoteUpDown(true, channel, pitch, velocity);
+    if (processedMessage) return;
+
+    _sampler.midiChannleVoiceMessage(0x90, pitch, velocity, channel);
 }
 
 void handleNoteOff(uint8_t channel, uint8_t pitch, uint8_t velocity)
 {
   sceneController.MidiNoteUpDown(false, channel, pitch, velocity);
+  _sampler.midiChannleVoiceMessage(0x80, pitch, velocity, channel);
 }
 
 void handleControlChange(uint8_t channel, uint8_t data1, uint8_t data2) 
