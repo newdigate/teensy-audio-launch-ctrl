@@ -15,9 +15,8 @@ namespace newdigate {
 
     // wave progress indicator foreground
     const uint16_t Neon_Blue = 0x4A7F;
-    
     // wave progress indicator background
-    const uint16_t Resolution_Blue = 0x0130;
+    const uint16_t Ultramarine_blue = 0x433E;
 
     class ProgressIndicator {
     public:
@@ -44,9 +43,8 @@ namespace newdigate {
             TeensyControl(
                 view, 
                 [&] () {
-                    if (_needsUpdate) {
-                        _view.fillRect(_left, _top, _width, _height, Oxford_blue);
-
+                    if (_needsUpdate && _data != nullptr) {
+                        ClearBackground();
                         for (auto && prog : _progressIndicators) {
                             if (prog.second != nullptr) {
                                 DrawProgressIndicator(prog.second);
@@ -60,7 +58,7 @@ namespace newdigate {
                         _needsUpdate = false;
                         _progressNeedsUpdate = false;
                         _progressIndicatorsToUpdate.clear();
-                    } else if (_progressNeedsUpdate) {
+                    } else if (_progressNeedsUpdate && _data != nullptr) {
                         for (auto && prog : _progressIndicatorsToUpdate) {
                             ProgressIndicator *ind = prog.second;
                             if (ind != nullptr) {
@@ -172,10 +170,25 @@ namespace newdigate {
             unsigned x = indicator->_progress;
             unsigned dataIndex = x * _dataSize  / _width;
             uint8_t data = _data[dataIndex];
-            _view.drawLine(_left+x, _top, _left+x, _top + _height-(_height * data/128), Resolution_Blue );
+            _view.drawLine(_left+x, _top, _left+x, _top + _height-(_height * data/128), Ultramarine_blue );
             _view.drawLine(_left+x, _top + _height-(_height * data/128), _left+x, _top + _height, Neon_Blue );
         }
 
+        void ClearBackground() {
+            _view.fillRect(_left, _top, _width, _height, Oxford_blue);
+        }
+
+        void Reset() {
+            ClearBackground();
+            if (_data != nullptr) {
+                delete _data;
+                _dataSize = 0;
+                _data = nullptr;
+            }
+            DeleteProgressIndicators();
+            _needsUpdate = false;
+            _progressNeedsUpdate = false;
+        }
 
     private:
         View &_view;

@@ -164,7 +164,7 @@ namespace newdigate {
             _view.fillScreen(ST7735_BLACK);
             _settingsMenu.NeedsUpdate = true; 
             _triggerNoteControlNeedsUpdate = true;
-            //_wavePreview.Show("SNARE.wav");
+            _wavePreview.ClearBackground();
         }
 
         void ButtonPressed() override {
@@ -184,18 +184,36 @@ namespace newdigate {
         bool HandleNoteOnOff(bool noteDown, uint8_t channel, uint8_t pitch, uint8_t velocity) override { 
             if (noteDown == false)
                 return true;
+            
+            if (_currentNote != nullptr && channel == _currentNote->_samplerNoteChannel && pitch == _currentNote->_samplerNoteNumber)
+            {
+                // _currentNote didnt change
+                return false;
+            }
+
             RemoveAllProgressSubscriptions();
             _pianoDisplay.reset();
             _pianoDisplay.keyDown(pitch);
             _pianoDisplay.setBaseOctave(pitch/12);
             _pianoDisplay.drawPiano();
+
+            char *oldFileName = nullptr;
+            if (_currentNote != nullptr) {
+                oldFileName = _currentNote->_filename;
+            }
+
             _currentNote = _samplerModel.getNoteForChannelAndKey(channel, pitch);
             if (_currentNote == nullptr) {
                 _currentNote = _samplerModel.allocateNote(channel, pitch);
             }
             if (_currentNote->_filename != nullptr){
                 AddProgressSubscription(_currentNote->_filename);
-            }
+                if  (oldFileName != nullptr && strcmp(oldFileName, _currentNote->_filename) != 0)
+                {
+                    _wavePreview.Reset();
+                }
+            } 
+
             _settingsMenu.NeedsUpdate = true; 
             _settingsMenu.Update();
             _triggerNoteControlNeedsUpdate = true;
