@@ -8,9 +8,16 @@
 
 namespace newdigate {
 
+    // wave foreground color
     const uint16_t Polynesian_Blue = 0x2272;
+    // wave background color
     const uint16_t Oxford_blue = 0x0109;
-    const uint16_t Spanish_Blue	= 0x0397;
+
+    // wave progress indicator foreground
+    const uint16_t Neon_Blue = 0x4A7F;
+    
+    // wave progress indicator background
+    const uint16_t Resolution_Blue = 0x0130;
 
     class ProgressIndicator {
     public:
@@ -42,7 +49,7 @@ namespace newdigate {
 
                         for (auto && prog : _progressIndicators) {
                             if (prog.second != nullptr) {
-                                _view.drawLine(_left+prog.second->_progress, _top, _left+prog.second->_progress, _top + _height, Spanish_Blue );
+                                DrawProgressIndicator(prog.second);
                             }
                         }
 
@@ -57,10 +64,8 @@ namespace newdigate {
                         for (auto && prog : _progressIndicatorsToUpdate) {
                             ProgressIndicator *ind = prog.second;
                             if (ind != nullptr) {
-                                if (ind->_hasPreviousProgress)
-                                    _view.drawLine(_left+ind->_previousProgress, _top, _left+ind->_previousProgress, _top + _height, Oxford_blue );
-
-                                _view.drawLine(_left+prog.second->_progress, _top, _left+prog.second->_progress, _top + _height, Spanish_Blue );
+                                UndrawProgressIndicator(ind);
+                                DrawProgressIndicator(ind);
                             }
                         }
                         _progressIndicatorsToUpdate.clear();
@@ -79,6 +84,8 @@ namespace newdigate {
         }
 
         virtual ~WavePreview() {
+            if (_data != nullptr)
+                delete _data;
             DeleteProgressIndicators();
         } 
 
@@ -149,12 +156,24 @@ namespace newdigate {
         void UndrawProgressIndicator(ProgressIndicator *indicator) {
             if (indicator == nullptr)
                 return;
-            _view.drawPixel(indicator->_progress, 0, RGB565_BLACK);
+            if (!indicator->_hasPreviousProgress)
+                return;
+
+            unsigned x = indicator->_previousProgress;
+            unsigned dataIndex = x * _dataSize  / _width;
+            uint8_t data = _data[dataIndex];
+            _view.drawLine(_left+x, _top, _left+x, _top + _height-(_height * data/128), Oxford_blue );
+            _view.drawLine(_left+x, _top + _height-(_height * data/128), _left+x, _top + _height, Polynesian_Blue );
         }
         void DrawProgressIndicator(ProgressIndicator *indicator) {
             if (indicator == nullptr)
                 return;
-            _view.drawPixel(indicator->_progress, 0, RGB565_WHITE);
+
+            unsigned x = indicator->_progress;
+            unsigned dataIndex = x * _dataSize  / _width;
+            uint8_t data = _data[dataIndex];
+            _view.drawLine(_left+x, _top, _left+x, _top + _height-(_height * data/128), Resolution_Blue );
+            _view.drawLine(_left+x, _top + _height-(_height * data/128), _left+x, _top + _height, Neon_Blue );
         }
 
 
@@ -165,7 +184,6 @@ namespace newdigate {
         int _dataSize;
         bool _needsUpdate;
         bool _progressNeedsUpdate;
-
         std::map<unsigned, ProgressIndicator*> _progressIndicators;
         std::map<unsigned, ProgressIndicator*> _progressIndicatorsToUpdate;
     };
