@@ -123,7 +123,7 @@ namespace newdigate {
                     [&] (bool forward) { 
                         if (_currentNote == nullptr || _directoryFileNameCache.getNumFileNames() == 0)
                             return;
-
+                        RemoveAllProgressSubscriptions();
                         int value = 0;
                         if (_currentNote->_filename != nullptr)  {
                             value = _directoryFileNameCache.getIndexOfFile(_currentNote->_filename);
@@ -132,6 +132,9 @@ namespace newdigate {
                         if (forward) value++; else value--;
                         value %= _directoryFileNameCache.getNumFileNames();
                         _currentNote->_filename = _directoryFileNameCache.getFileNameForIndex(value);
+                        if (_currentNote->_filename != nullptr)  {
+                            AddProgressSubscription(_currentNote->_filename);
+                        }
                     }),
                 TeensyMenuItem(_settingsMenu, [] (View *v) {v->drawString("tune  ", 0, 0);}, 8), 
                 TeensyMenuItem(_settingsMenu, [] (View *v) {v->drawString("volume  ", 0, 0);}, 8)
@@ -161,7 +164,7 @@ namespace newdigate {
             _view.fillScreen(ST7735_BLACK);
             _settingsMenu.NeedsUpdate = true; 
             _triggerNoteControlNeedsUpdate = true;
-            _wavePreview.Show("SNARE.wav");
+            //_wavePreview.Show("SNARE.wav");
         }
 
         void ButtonPressed() override {
@@ -181,9 +184,7 @@ namespace newdigate {
         bool HandleNoteOnOff(bool noteDown, uint8_t channel, uint8_t pitch, uint8_t velocity) override { 
             if (noteDown == false)
                 return true;
-            for (auto && sub : _playbackProgressSubscriptions) {
-                _sampler.unregisterProgressCallback(sub);
-            }
+            RemoveAllProgressSubscriptions();
             _pianoDisplay.reset();
             _pianoDisplay.keyDown(pitch);
             _pianoDisplay.setBaseOctave(pitch/12);
@@ -193,14 +194,33 @@ namespace newdigate {
                 _currentNote = _samplerModel.allocateNote(channel, pitch);
             }
             if (_currentNote->_filename != nullptr){
-                _playbackProgressSubscriptions.push_back(
-                    _sampler.registerProgressCallback(_currentNote->_filename, _view._width, [&] (unsigned index, unsigned sampleNumber) { } )
-                );
+                AddProgressSubscription(_currentNote->_filename);
             }
             _settingsMenu.NeedsUpdate = true; 
             _settingsMenu.Update();
             _triggerNoteControlNeedsUpdate = true;
             return true; 
+        }
+
+        void AddProgressSubscription(char *filename) {
+            _playbackProgressSubscriptions.push_back(
+                _sampler.registerProgressCallback(
+                    filename, 
+                    _view._width, 
+                    [&] (unsigned index, unsigned progress) {
+                        this->ProgressUpdateReceived(index, progress);
+                    })
+            );
+        }
+        void RemoveAllProgressSubscriptions() {
+            for (auto && sub : _playbackProgressSubscriptions) {
+                _sampler.unregisterProgressCallback(sub);
+            }
+            _playbackProgressSubscriptions.clear();
+        }
+
+        void ProgressUpdateReceived(unsigned index, unsigned progress) {
+            _wavePreview.CreateOrUpdateProgressIndicator(index, progress);
         }
 
         bool HandleControlChange(uint8_t channel, uint8_t data1, uint8_t data2) override { 

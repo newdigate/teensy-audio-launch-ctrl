@@ -72,6 +72,14 @@ namespace newdigate
                     if (voice != nullptr) {
                         voice->stop();
                         if (sample->_filename != nullptr) {
+
+                            std::vector<ProgressRegistration*> *progressForFilename = _progressRegistrations[sample->_filename];
+                            if (progressForFilename != nullptr){
+                                for (auto && reg : *progressForFilename) {
+                                    reg->_voice = voice;
+                                }
+                            }
+
                             voice->playWav(sample->_filename);
                             sample->_voice = voice;
                             updateRegistrations(sample->_filename, voice);
@@ -91,6 +99,13 @@ namespace newdigate
                         if (voice != nullptr && sample->_filename != nullptr) {
                             voice->playWav(sample->_filename);
                             sample->_voice = voice;
+                            
+                            std::vector<ProgressRegistration*> *progressForFilename = _progressRegistrations[sample->_filename];
+                            if (progressForFilename != nullptr){
+                                for (auto && reg : *progressForFilename) {
+                                    reg->_voice = voice;
+                                }
+                            }
                         } 
                     }
                     break;
@@ -160,7 +175,15 @@ namespace newdigate
         }
 
         void updateProgress() {
+            _updateCount++;
+            //_updateCount %= 1;
+            //if (_updateCount != 0)
+            //    return;
+
             for (auto && reg : _progressRegistrationsById) {
+                if (reg.second == nullptr)
+                    return;
+
                 if (reg.second->_voice != nullptr)
                 { 
                     if  (reg.second->_voice->isPlaying() ) {
@@ -181,7 +204,7 @@ namespace newdigate
         polyphonic<AudioPlaySdResmp> &_polyphony;
         std::map<char*, std::vector<ProgressRegistration*>*> _progressRegistrations;
         std::map<unsigned int, ProgressRegistration*> _progressRegistrationsById;
-
+        unsigned int _updateCount = 0;
         unsigned int _currentId = 0;
     };
 
