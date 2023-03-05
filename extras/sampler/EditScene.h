@@ -21,6 +21,11 @@
 namespace newdigate {
 
     const int NUM_EDIT_MENU_ITEMS = 6;
+    const uint16_t UA_blue = 0x01B5;
+    const uint16_t Gold = 0xFEA0;
+    const uint16_t Canary = 0xFFF3;
+    const uint16_t Royal_blue_dark2 = 0x012C;
+    const uint16_t Oxford_blue2 = 0x0109;
 
     class EditScene : public BaseScene {
     public:
@@ -31,34 +36,81 @@ namespace newdigate {
                 16, 16), 
             _samplerModel(samplerModel),
             _view(view),
-            _settingsMenu(view, 0, 50, 128, 78, ST7735_BLUE, ST7735_BLACK),
+            _settingsMenu(view, 0, 34, 128, 128-34, Oxford_blue2, ST7735_BLACK),
             _triggerNoteControlNeedsUpdate(true),
             _triggerNoteControl(view, [&] () { 
                 if (_triggerNoteControlNeedsUpdate) {
                     _triggerNoteControlNeedsUpdate = false;
-                    _pianoDisplay.drawFullPiano();
-                    _view.drawString("trigger", 0, 0);
-                    _view.drawString("oct:", 0, 8);
-                    _view.drawLine(0, 28, 128, 28, ST7735_WHITE);
+                    _triggerNoteControl.fillRect(0, 0, 128, 28, Royal_blue_dark2);
+
+                    _triggerNoteControl.drawLine(0, 0, 128, 0, UA_blue);
+                    _triggerNoteControl.drawLine(0, _triggerNoteControl.Height()-2, 127, _triggerNoteControl.Height()-2, UA_blue);
+                    
                     if (_currentNote == nullptr) {
-                        _view.drawString("n/a", 30, 9);
-                    }
-                    
-                    _view.drawString("ch:", 0, 20);
-                    if (_currentNote == nullptr)
+                        _triggerNoteControl.setTextColor(Canary);
+                        _triggerNoteControl.drawString("Select a note...", 8, 4);
+                        _triggerNoteControl.setTextColor(RGB565_WHITE);
                         return;
-                        
-                    _view.fillRect(64, 0, 28, 8, ST7735_BLACK);
-                    _view.drawNumber(_currentNote->_samplerNoteNumber, 64, 0); 
-                    
-                    _view.fillRect(32, 8, 28, 8, ST7735_BLACK);
-                    _view.drawNumber(_currentNote->_samplerNoteNumber/12, 32, 8); 
-     
-                    _view.fillRect(32, 20, 28, 8, ST7735_BLACK);
-                    _view.drawNumber(_currentNote->_samplerNoteChannel, 32, 20);
+                    }
+
+                    _pianoDisplay.drawFullPiano();
+                    int noteNumber = _currentNote->_samplerNoteNumber % 12;
+                    switch (noteNumber) {
+                        case 0: case 1:     _triggerNoteControl.drawString("c", 0, 4); break;
+                        case 2: case 3:     _triggerNoteControl.drawString("d", 0, 4); break;
+                        case 4:             _triggerNoteControl.drawString("e", 0, 4); break;
+                        case 5: case 6:     _triggerNoteControl.drawString("f", 0, 4); break;
+                        case 7: case 8:     _triggerNoteControl.drawString("g", 0, 4); break;
+                        case 9: case 10:    _triggerNoteControl.drawString("a", 0, 4); break;
+                        case 11:            _triggerNoteControl.drawString("b", 0, 4); break;   
+                        default: break;                     
+                    }
+
+                    if (noteNumber == 1 || noteNumber == 3 || noteNumber == 6 || noteNumber == 8 || noteNumber == 10)
+                        _triggerNoteControl.drawString("#", 8, 4);
+                    _triggerNoteControl.drawNumber(_currentNote->_samplerNoteNumber/12, 16, 4); 
+                    _triggerNoteControl.setTextColor(Gold);
+                    _triggerNoteControl.drawString(":", 24, 4);
+                    _triggerNoteControl.drawNumber(_currentNote->_samplerNoteChannel, 32, 4);
+                    _triggerNoteControl.setTextColor(RGB565_WHITE);
+                    //_pianoDisplay.displayNeedsUpdating();
                 }
-             }, 128, 28, 0, 0),              //     TeensyControl(View &view, std::function<void()> updateFn, unsigned int width, unsigned int height, unsigned int x unsigned int y)
+             }, 128, 15, 0, 19),              //     TeensyControl(View &view, std::function<void()> updateFn, unsigned int width, unsigned int height, unsigned int x unsigned int y)
             _settingMenuItems {
+                TeensyMenuItem(_settingsMenu, 
+                    [&] (View *v) 
+                    {   
+                        v->drawString("sample  ", 0, 0);
+
+                        if (_currentNote == nullptr) {
+                            return;
+                        }
+
+                        if (_currentNote->_filename != nullptr)  {
+                            v->setTextSize(2);
+                            v->drawString(_currentNote->_filename, 0, 8);
+                            v->setTextSize(1);
+                            _wavePreview.Show(_currentNote->_filename);
+                        }
+                    }, 
+                    24,
+                    [&] (bool forward) { 
+                        if (_currentNote == nullptr || _directoryFileNameCache.getNumFileNames() == 0) {
+                            return;
+                        }
+                        RemoveAllProgressSubscriptions();
+                        int value = 0;
+                        if (_currentNote->_filename != nullptr)  {
+                            value = _directoryFileNameCache.getIndexOfFile(_currentNote->_filename);
+                        }
+
+                        if (forward) value++; else value--;
+                        value %= _directoryFileNameCache.getNumFileNames();
+                        _currentNote->_filename = _directoryFileNameCache.getFileNameForIndex(value);
+                        if (_currentNote->_filename != nullptr)  {
+                            AddProgressSubscription(_currentNote->_filename);
+                        } 
+                    }),
                 TeensyMenuItem(_settingsMenu, 
                     [&] (View *v) {
                         v->drawString("direction", 0, 0);
@@ -104,45 +156,13 @@ namespace newdigate {
                         _currentNote->_playlooptype = (playlooptype)value;
                     }), 
                 TeensyMenuItem(_settingsMenu, [] (View *v) {v->drawString("pan  ", 0, 0);}, 8), 
-                TeensyMenuItem(_settingsMenu, 
-                    [&] (View *v) 
-                    {   
-                        v->drawString("sample  ", 0, 0);
-
-                        if (_currentNote == nullptr)
-                            return;
-
-                        if (_currentNote->_filename != nullptr)  {
-                            v->setTextSize(2);
-                            v->drawString(_currentNote->_filename, 0, 8);
-                            v->setTextSize(1);
-                            _wavePreview.Show(_currentNote->_filename);
-                        }
-                    }, 
-                    24,
-                    [&] (bool forward) { 
-                        if (_currentNote == nullptr || _directoryFileNameCache.getNumFileNames() == 0)
-                            return;
-                        RemoveAllProgressSubscriptions();
-                        int value = 0;
-                        if (_currentNote->_filename != nullptr)  {
-                            value = _directoryFileNameCache.getIndexOfFile(_currentNote->_filename);
-                        }
-
-                        if (forward) value++; else value--;
-                        value %= _directoryFileNameCache.getNumFileNames();
-                        _currentNote->_filename = _directoryFileNameCache.getFileNameForIndex(value);
-                        if (_currentNote->_filename != nullptr)  {
-                            AddProgressSubscription(_currentNote->_filename);
-                        }
-                    }),
                 TeensyMenuItem(_settingsMenu, [] (View *v) {v->drawString("tune  ", 0, 0);}, 8), 
                 TeensyMenuItem(_settingsMenu, [] (View *v) {v->drawString("volume  ", 0, 0);}, 8)
             },
             _currentNote(nullptr),
-            _pianoDisplay(_view, 2, 0, 48, 9), //tft, byte octaves, byte startOctave, byte x, byte y
+            _pianoDisplay(_triggerNoteControl, 2, 0, 48, 2), //tft, byte octaves, byte startOctave, byte x, byte y
             _directoryFileNameCache(directoryFileNameCache),
-            _wavePreview(_view, sd, 128, 20, 0, 28),
+            _wavePreview(_view, sd, 128, 20, 0, 0),
             _sampler(sampler),
             _playbackProgressSubscriptions()
         {
@@ -152,6 +172,7 @@ namespace newdigate {
         }
 
         virtual ~EditScene() {
+            _wavePreview.Reset();
         }
 
         void Update() override {
@@ -168,6 +189,11 @@ namespace newdigate {
         }
 
         void ButtonPressed() override {
+            if (_currentNote == nullptr || _currentNote->_filename == nullptr)
+                return;
+            
+            _sampler.midiChannleVoiceMessage(0x90, _currentNote->_samplerNoteNumber, 127, _currentNote->_samplerNoteChannel );
+            
         }
 
         void Rotary1Changed(bool forward) override {
@@ -206,13 +232,16 @@ namespace newdigate {
             if (_currentNote == nullptr) {
                 _currentNote = _samplerModel.allocateNote(channel, pitch);
             }
+            
             if (_currentNote->_filename != nullptr){
                 AddProgressSubscription(_currentNote->_filename);
                 if  (oldFileName != nullptr && strcmp(oldFileName, _currentNote->_filename) != 0)
                 {
                     _wavePreview.Reset();
                 }
-            } 
+            } else {
+                _wavePreview.ClearBackground();
+            }
 
             _settingsMenu.NeedsUpdate = true; 
             _settingsMenu.Update();
@@ -243,10 +272,6 @@ namespace newdigate {
 
         bool HandleControlChange(uint8_t channel, uint8_t data1, uint8_t data2) override { 
             return false; 
-        }
-
-        void DrawSettingsMenuItem0(View *v) {
-   
         }
 
     private:

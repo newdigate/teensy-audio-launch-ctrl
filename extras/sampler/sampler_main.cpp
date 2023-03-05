@@ -73,7 +73,8 @@ int _directionValue = 64;
 newdigate::WavePreviewBuilder _wavePreviewBuilder(sd);
 
 #define NUM_SETTINGS_MENU_ITEMS 20
-TeensyMenu settingsMenu = TeensyMenu( _display, 0, 0, 128, 128, ST7735_BLUE, ST7735_BLACK );
+const uint16_t Oxford_blue3 = 0x0109;
+TeensyMenu settingsMenu = TeensyMenu( _display, 0, 0, 128, 128, Oxford_blue3, ST7735_BLACK );
 TeensyMenuItem settingMenuItems[NUM_SETTINGS_MENU_ITEMS] = {
   TeensyMenuItem(settingsMenu, DrawSettingsMenuItem0, 20),
   TeensyMenuItem(settingsMenu, 
@@ -122,6 +123,8 @@ void DrawSettingsMenuItem0(View *v) {
 newdigate::DirectoryFileNameCache directoryFileNameCache(sd);
 
 newdigate::EditScene editScene(model, _display, directoryFileNameCache, sd, _sampler);
+
+
 
 Scene settingsScene = Scene(
                         _bmp_settings_on, 

@@ -18,6 +18,9 @@ namespace newdigate {
     // wave progress indicator background
     const uint16_t Ultramarine_blue = 0x433E;
 
+    // horizontal lines
+    const uint16_t Berkeley_Blue = 0x018C;
+    const uint16_t Royal_blue_dark = 0x012C;
     class ProgressIndicator {
     public:
         ProgressIndicator(unsigned index, unsigned progress) :
@@ -43,17 +46,23 @@ namespace newdigate {
             TeensyControl(
                 view, 
                 [&] () {
-                    if (_needsUpdate && _data != nullptr) {
+                    if (_needsUpdate) {
                         ClearBackground();
+
+                        if (_data == nullptr) 
+                            return;
+
                         for (auto && prog : _progressIndicators) {
                             if (prog.second != nullptr) {
                                 DrawProgressIndicator(prog.second);
                             }
                         }
-
+                        
+                        unsigned height = _height-1;
                         for (int i=0; i<_width; i++) {
                             int dataIndex = i * _dataSize / _width;
-                            _view.drawLine(_left+i, _top + _height-(_height * _data[dataIndex]/128), _left+i, _top + _height, Polynesian_Blue );
+                            uint8_t data = _data[dataIndex];
+                            drawLine(i, height-(height * data/128), i,   height,                     Polynesian_Blue );
                         }
                         _needsUpdate = false;
                         _progressNeedsUpdate = false;
@@ -157,11 +166,22 @@ namespace newdigate {
             if (!indicator->_hasPreviousProgress)
                 return;
 
+            unsigned verticleQuarter    = _height/4 - 1;
+            unsigned verticleMiddle     = _height/2 - 1;
+            unsigned verticle3rdQuarter = (_height*3)/4 - 1;
+
             unsigned x = indicator->_previousProgress;
+
             unsigned dataIndex = x * _dataSize  / _width;
             uint8_t data = _data[dataIndex];
-            _view.drawLine(_left+x, _top, _left+x, _top + _height-(_height * data/128), Oxford_blue );
-            _view.drawLine(_left+x, _top + _height-(_height * data/128), _left+x, _top + _height, Polynesian_Blue );
+            unsigned height = _height-1;
+            drawLine(x, 0,                          x,   height-(height * data/128), Oxford_blue );
+
+            drawPixel(x, verticleQuarter,    Royal_blue_dark );
+            drawPixel(x, verticleMiddle,     Berkeley_Blue );
+            drawPixel(x, verticle3rdQuarter, Royal_blue_dark );
+
+            drawLine(x, height-(height * data/128), x,   height,                     Polynesian_Blue );
         }
         void DrawProgressIndicator(ProgressIndicator *indicator) {
             if (indicator == nullptr)
@@ -170,12 +190,20 @@ namespace newdigate {
             unsigned x = indicator->_progress;
             unsigned dataIndex = x * _dataSize  / _width;
             uint8_t data = _data[dataIndex];
-            _view.drawLine(_left+x, _top, _left+x, _top + _height-(_height * data/128), Ultramarine_blue );
-            _view.drawLine(_left+x, _top + _height-(_height * data/128), _left+x, _top + _height, Neon_Blue );
+            unsigned height = _height-1;
+            drawLine(x, 0,                          x,   height-(height * data/128), Ultramarine_blue );
+            drawLine(x, height-(height * data/128), x,   height,                     Neon_Blue );
         }
 
         void ClearBackground() {
-            _view.fillRect(_left, _top, _width, _height, Oxford_blue);
+            fillRect(0, 0, _width, _height, Oxford_blue);
+            unsigned verticleQuarter    = _height/4 - 1;
+            unsigned verticleMiddle     = _height/2 - 1;
+            unsigned verticle3rdQuarter = (_height*3)/4 - 1;
+        
+            drawLine(0, verticleQuarter,    _width-1, verticleQuarter,      Royal_blue_dark );
+            drawLine(0, verticleMiddle,     _width-1, verticleMiddle,       Berkeley_Blue );
+            drawLine(0, verticle3rdQuarter, _width-1, verticle3rdQuarter,   Royal_blue_dark );
         }
 
         void Reset() {
