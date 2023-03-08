@@ -144,8 +144,15 @@ Scene settingsScene = Scene(
                           pianoDisplay1.displayNeedsUpdating();
                         },
 
-                        // void buttonPressed()
-                        [] {}, 
+                        // void uninitScreen() 
+                        [] {
+                          
+                        },
+
+                        // void buttonPressed(unsigned int index)
+                        [] (unsigned index) {
+
+                        }, 
 
                         // void rotary1Changed(bool forward)
                         [] (bool forward) { 

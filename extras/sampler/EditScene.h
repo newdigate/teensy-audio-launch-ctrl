@@ -186,9 +186,18 @@ namespace newdigate {
             _settingsMenu.NeedsUpdate = true; 
             _triggerNoteControlNeedsUpdate = true;
             _wavePreview.ClearBackground();
+            if (_currentNote != nullptr && _currentNote->_filename != nullptr) {
+                _wavePreview.Show(_currentNote->_filename);
+                _wavePreview.Update();
+                AddProgressSubscription(_currentNote->_filename);
+            } 
         }
 
-        void ButtonPressed() override {
+        void UninitScreen() override {
+            RemoveAllProgressSubscriptions();
+        }
+
+        void ButtonPressed(unsigned index) override {
             if (_currentNote == nullptr || _currentNote->_filename == nullptr)
                 return;
             
