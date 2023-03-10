@@ -16,7 +16,7 @@
 #include "TFTPianoDisplay.h"
 #include "DirectoryFileNameCache.h"
 #include "WavePreview.h"
-#include "Sampler.h"
+#include "MySampler.h"
 
 namespace newdigate {
 
@@ -29,7 +29,7 @@ namespace newdigate {
 
     class EditScene : public BaseScene {
     public:
-        EditScene(SamplerModel &samplerModel, View &view, DirectoryFileNameCache &directoryFileNameCache, SDClass &sd, Sampler &sampler) : 
+        EditScene(SamplerModel &samplerModel, View &view, DirectoryFileNameCache &directoryFileNameCache, SDClass &sd, MyLoopSampler &sampler) : 
             BaseScene(
                 _bmp_edit_on, 
                 _bmp_edit_off,
@@ -201,8 +201,8 @@ namespace newdigate {
             if (_currentNote == nullptr || _currentNote->_filename == nullptr)
                 return;
             
-            _sampler.midiChannleVoiceMessage(0x90, _currentNote->_samplerNoteNumber, 127, _currentNote->_samplerNoteChannel );
-            
+            _sampler.noteEvent(_currentNote->_samplerNoteNumber, _currentNote->_samplerNoteChannel, 127, true, false);
+
         }
 
         void Rotary1Changed(bool forward) override {
@@ -294,7 +294,7 @@ namespace newdigate {
         TFTPianoDisplay<View> _pianoDisplay; //tft, byte octaves, byte startOctave, byte x, byte y
         DirectoryFileNameCache& _directoryFileNameCache;
         WavePreview _wavePreview;
-        Sampler &_sampler;
+        MyLoopSampler &_sampler;
         std::vector<unsigned int> _playbackProgressSubscriptions;
 
     };

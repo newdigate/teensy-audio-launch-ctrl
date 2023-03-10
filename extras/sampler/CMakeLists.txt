@@ -55,6 +55,9 @@ include_directories(${teensy_gfx_controls_INCLUDE_DIR})
 find_package(arduino_tftpianoview)
 include_directories(${arduino_tftpianoview_INCLUDE_DIR})
 
+find_package(teensypolyphony)
+include_directories(${teensypolyphony_INCLUDE_DIR})
+
 include_directories(../../src)
 
 add_definitions(-fms-extensions)
@@ -77,6 +80,8 @@ target_link_libraries(sampler ${teensy_st7735_linux_extras_opengl_LIBS})
 target_link_libraries(sampler ${teensy_x86_bounce2_stubs_LIBS})
 target_link_libraries(sampler ${teensy_gfx_LIBS})
 target_link_libraries(sampler ${teensy_gfx_controls_LIBS})
+target_link_libraries(sampler ${teensypolyphony_LIBS})
+
 
 include(opengl.cmake)
 target_link_libraries(sampler ${LIBS})
