@@ -39,7 +39,14 @@ namespace newdigate
             samplermodel<sdsampleplayernote> &samplermodel, 
             audiovoicepolyphonic<AudioPlaySdResmp> &polyphony
         ): 
-            audiosampler<AudioPlaySdResmp, sdsampleplayernote>(polyphony),
+            audiosampler<AudioPlaySdResmp, sdsampleplayernote>(
+                polyphony, 
+                [&] (uint8_t noteNumber, uint8_t noteChannel) -> triggertype {
+                    sdsampleplayernote *sample = _samplermodel.getNoteForChannelAndKey(noteChannel, noteNumber);
+                    if (sample == nullptr)
+                        return triggertype::triggertype_play_while_notedown;
+                    return sample->_triggertype;
+                }),
             _samplermodel(samplermodel) 
         {
         }
