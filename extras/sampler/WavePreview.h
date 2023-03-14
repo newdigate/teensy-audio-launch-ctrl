@@ -5,7 +5,7 @@
 #include <SD.h>
 #include "teensy_controls.h"
 #include "WavePreviewBuilder.h"
-
+#include <map>
 namespace newdigate {
 
     // wave foreground color

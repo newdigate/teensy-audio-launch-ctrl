@@ -17,7 +17,6 @@
 #include "scenecontroller.h"
 #include "teensy_controls.h"
 #include "TFTPianoDisplay.h"
-#include "SamplerModel.h"
 #include "EditScene.h"
 #include "DirectoryFileNameCache.h"
 #include "WavePreviewBuilder.h"
@@ -75,7 +74,7 @@ AudioConnection          patchCord20(mixer3, 0, i2s1, 1);
 AudioEffectEnvelope *envelopes[] = {&envelope1, &envelope2, &envelope3, &envelope4, &envelope5, &envelope6, &envelope7, &envelope8  };
 AudioPlaySdResmp *voices[] = {&voice1, &voice2, &voice3, &voice4, &voice5, &voice6, &voice7, &voice8};
 
-newdigate::SamplerModel model;
+samplermodel<sdsampleplayernote> model;
 
 MIDI_CREATE_RTMIDI_INSTANCE(RtMidiMIDI, rtMIDI,  MIDI);
 
@@ -87,10 +86,10 @@ Encoder encoderLeftRight;
 Encoder encoderUpDown;
 typedef st7735_opengl<Encoder, Button> st7735_ogl;
 typedef SceneController< st7735_opengl<Encoder, Button>, Encoder, Button> MySceneController;
-//polyphonic<AudioPlaySdResmp> _polyphony;
+audiovoicepolyphonic<AudioPlaySdResmp> _polyphony;
 
 //newdigate::Sampler _sampler = newdigate::Sampler(model, _polyphony);
-newdigate::MyLoopSampler _sampler = newdigate::MyLoopSampler(model);
+newdigate::MyLoopSampler _sampler = newdigate::MyLoopSampler(model, _polyphony);
 st7735_ogl _display(true, 20, &encoderLeftRight, &encoderUpDown, &button);
 MySceneController sceneController(_display, encoderLeftRight, encoderUpDown, button);
 
@@ -251,14 +250,14 @@ void setup() {
   for (int i = 0; i < NUM_SETTINGS_MENU_ITEMS; i++) {
     settingsMenu.AddControl(&settingMenuItems[i]);
   }
-  _sampler.addVoice( voice1, mixer1, 0, envelope1);
-  _sampler.addVoice( voice2, mixer1, 1, envelope2);
-  _sampler.addVoice( voice3, mixer1, 2, envelope3);
-  _sampler.addVoice( voice4, mixer1, 3, envelope4);
-  _sampler.addVoice( voice5, mixer2, 0, envelope5);
-  _sampler.addVoice( voice6, mixer2, 1, envelope6);
-  _sampler.addVoice( voice7, mixer2, 2, envelope7);
-  _sampler.addVoice( voice8, mixer2, 3, envelope8); 
+  _polyphony.addVoice( &voice1, &envelope1, &mixer1, 0);
+  _polyphony.addVoice( &voice2, &envelope2, &mixer1, 1);
+  _polyphony.addVoice( &voice3, &envelope3, &mixer1, 2);
+  _polyphony.addVoice( &voice4, &envelope4, &mixer1, 3);
+  _polyphony.addVoice( &voice5, &envelope5, &mixer2, 0);
+  _polyphony.addVoice( &voice6, &envelope6, &mixer2, 1);
+  _polyphony.addVoice( &voice7, &envelope7, &mixer2, 2);
+  _polyphony.addVoice( &voice8, &envelope8, &mixer2, 3); 
 
   mixer3.gain(0, 1.0);
   mixer3.gain(1, 1.0);
@@ -293,11 +292,13 @@ void handleNoteOn(uint8_t channel, uint8_t pitch, uint8_t velocity)
 {
     bool processedMessage = sceneController.MidiNoteUpDown(true, channel, pitch, velocity);
     //if (processedMessage) return;
-    sdsampleplayernote<AudioPlaySdResmp>* sample = model.getNoteForChannelAndKey(channel, pitch);
+    _sampler.trigger(pitch, channel, velocity, true);/*
+
+    sdsampleplayernote* sample = model.getNoteForChannelAndKey(channel, pitch);
     if (sample != nullptr) {
       switch (sample->_triggertype) {
           case triggertype_play_until_end :
-          case triggertype_play_while_notedown : _sampler.noteEvent(pitch, channel, velocity, true, false); break;
+          case triggertype_play_while_notedown : _sampler.trigger(pitch, channel, velocity, true); break;
           case triggertype_play_until_subsequent_notedown: {
               if (sample->_voice != nullptr) {
                   sample->_voice->stop();
@@ -305,21 +306,21 @@ void handleNoteOn(uint8_t channel, uint8_t pitch, uint8_t velocity)
                   sample->_voice = nullptr;
                   sample->isPlaying = false;
               } else {
-                _sampler.noteEvent(pitch, channel, velocity, true, false);      
+                _sampler.trigger(pitch, channel, velocity, false);      
               }
           }
           break;
 
           default: break;
       }
-    }
+    } */
 }
 
 void handleNoteOff(uint8_t channel, uint8_t pitch, uint8_t velocity)
 {
   sceneController.MidiNoteUpDown(false, channel, pitch, velocity);
-
-  sdsampleplayernote<AudioPlaySdResmp>* sample = model.getNoteForChannelAndKey(channel, pitch);
+  _sampler.trigger(pitch, channel, velocity, false);/*c
+  sdsampleplayernote* sample = model.getNoteForChannelAndKey(channel, pitch);
   if (sample != nullptr) {
     switch (sample->_triggertype) {
         case triggertype_play_until_end :
@@ -338,6 +339,7 @@ void handleNoteOff(uint8_t channel, uint8_t pitch, uint8_t velocity)
         default: break;
     }
   }
+  */
 }
 
 void handleControlChange(uint8_t channel, uint8_t data1, uint8_t data2) 

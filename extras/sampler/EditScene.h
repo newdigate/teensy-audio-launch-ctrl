@@ -29,7 +29,7 @@ namespace newdigate {
 
     class EditScene : public BaseScene {
     public:
-        EditScene(SamplerModel &samplerModel, View &view, DirectoryFileNameCache &directoryFileNameCache, SDClass &sd, MyLoopSampler &sampler) : 
+        EditScene(samplermodel<sdsampleplayernote> &samplerModel, View &view, DirectoryFileNameCache &directoryFileNameCache, SDClass &sd, MyLoopSampler &sampler) : 
             BaseScene(
                 _bmp_edit_on, 
                 _bmp_edit_off,
@@ -201,7 +201,7 @@ namespace newdigate {
             if (_currentNote == nullptr || _currentNote->_filename == nullptr)
                 return;
             
-            _sampler.noteEvent(_currentNote->_samplerNoteNumber, _currentNote->_samplerNoteChannel, 127, true, false);
+            _sampler.trigger(_currentNote->_samplerNoteNumber, _currentNote->_samplerNoteChannel, 127, true);
 
         }
 
@@ -239,7 +239,10 @@ namespace newdigate {
 
             _currentNote = _samplerModel.getNoteForChannelAndKey(channel, pitch);
             if (_currentNote == nullptr) {
-                _currentNote = _samplerModel.allocateNote(channel, pitch);
+                _currentNote = new sdsampleplayernote();
+                _currentNote->_samplerNoteChannel = channel;
+                _currentNote->_samplerNoteNumber = pitch;
+                _currentNote = _samplerModel.allocateNote(channel, pitch, _currentNote);
             }
             
             if (_currentNote->_filename != nullptr){
@@ -284,13 +287,13 @@ namespace newdigate {
         }
 
     private:
-        SamplerModel& _samplerModel;
+        samplermodel<sdsampleplayernote>& _samplerModel;
         View& _view;
         TeensyMenu _settingsMenu;
         bool _triggerNoteControlNeedsUpdate;
         TeensyControl _triggerNoteControl;
         TeensyMenuItem _settingMenuItems[NUM_EDIT_MENU_ITEMS];
-        sdsampleplayernote<AudioPlaySdResmp> *_currentNote;
+        sdsampleplayernote *_currentNote;
         TFTPianoDisplay<View> _pianoDisplay; //tft, byte octaves, byte startOctave, byte x, byte y
         DirectoryFileNameCache& _directoryFileNameCache;
         WavePreview _wavePreview;

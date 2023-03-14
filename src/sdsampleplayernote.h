@@ -25,15 +25,15 @@
 
 #include <Audio.h>
 #include <TeensyVariablePlayback.h>
-#include "sampleplaymidicontrollerenums.h"
+#include "loopsamplerenums.h"
 
-template <typename TAudioPlay>
+//template <typename TAudioPlay>
 class sdsampleplayernote {
 public:
     char * _filename = nullptr;
     uint8_t _samplerNoteNumber = 0;    
     uint8_t _samplerNoteChannel = 0;    
-    TAudioPlay *_voice = nullptr;
+    //TAudioPlay *_voice = nullptr;
     bool isPlaying = false;
     triggertype _triggertype = triggertype::triggertype_play_until_subsequent_notedown;
     playlooptype _playlooptype = playlooptype::playlooptype_once;

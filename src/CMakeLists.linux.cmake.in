@@ -19,6 +19,9 @@ include_directories(${teensy_gfx_INCLUDE_DIR})
 find_package(teensy_gfx_controls)
 include_directories(${teensy_gfx_controls_INCLUDE_DIR})
 
+find_package(teensypolyphony)
+include_directories(${teensypolyphony_INCLUDE_DIR})
+
 add_library(teensy_audio_launch_ctrl STATIC
         ${HEADER_FILES}
         ${SOURCE_FILES}
