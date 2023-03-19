@@ -32,13 +32,36 @@ namespace newdigate
             unsigned int _id;
             unsigned int _resolution;
             CallbackFn _callback;
-            unsigned int _lastValue = 0;
-            AudioPlaySdResmp *_voice = nullptr;
             char *_filename;
             uint8_t _noteNumber;
             uint8_t _noteChannel;
     };
 
+    class ProgressIndictation {
+    public:
+        ProgressIndictation(
+            AudioPlaySdResmp &voice,
+            unsigned int id, 
+            ProgressRegistration &registration
+        ) : 
+            _voice(voice),
+            Id(id), 
+            _lastValue(0), 
+            _registration(registration) {
+        }
+        
+        ProgressIndictation(const ProgressIndictation &indicator)  = delete;
+
+        virtual ~ProgressIndictation() {
+        }
+
+        unsigned int Id;
+        AudioPlaySdResmp &_voice;
+        ProgressRegistration &_registration;
+        unsigned int _lastValue;
+
+    protected:
+    };
 
     class MyLoopSampler : public audiosampler<AudioPlaySdResmp, sdsampleplayernote> {
     public:
@@ -54,7 +77,9 @@ namespace newdigate
                         return triggertype::triggertype_play_while_notedown;
                     return sample->_triggertype;
                 }),
-            _samplermodel(samplermodel) 
+            _samplermodel(samplermodel),
+            _currentId(0),
+            _currentIndicatorId(0) 
         {
         }
         
@@ -80,7 +105,7 @@ namespace newdigate
             }
 
             audioplay.playWav(sample->_filename);
-            updateRegistrations(noteNumber, noteChannel, sample->_filename, voice);
+            createIndicatorForRegistrations(noteNumber, noteChannel, sample->_filename, voice);
 
             //sample->_voice = voice;
         }
@@ -156,7 +181,7 @@ namespace newdigate
             delete progReg;
         }
 
-        void updateRegistrations(uint8_t noteNumber, uint8_t noteChannel, char *filename, AudioPlaySdResmp *voice) {
+        void createIndicatorForRegistrations(uint8_t noteNumber, uint8_t noteChannel, char *filename, AudioPlaySdResmp *voice) {
             std::map<uint8_t, std::vector<ProgressRegistration*>*>* progressRegistrationsForChannel = _progressRegistrations[noteChannel];
             if (progressRegistrationsForChannel == nullptr)
                 return;
@@ -167,17 +192,27 @@ namespace newdigate
             }
 
             for (auto && reg : *progressRegsForNoteAndChannel) {
-                updateProgressRegistration(reg);
-                reg->_voice = voice;
+                if (reg->_filename == filename) {
+                    ProgressIndictation *indicator = new ProgressIndictation(*voice, _currentIndicatorId++, *reg);
+                    std::vector<ProgressIndictation*> *progressIndicatorsForRegId = _progressIndicatorsByRegId[reg->_id];
+
+                    if (progressIndicatorsForRegId == nullptr) {
+                        progressIndicatorsForRegId = new std::vector<ProgressIndictation*>();
+                        _progressIndicatorsByRegId[reg->_id] = progressIndicatorsForRegId;
+
+                    }
+                    progressIndicatorsForRegId->push_back(indicator);
+                }
             }
         }
 
         void updateProgress() {
-            for (auto && reg : _progressRegistrationsById) {
+            for (auto && reg : _progressIndicatorsByRegId) {
                 if (reg.second == nullptr)
                     return;
-
-                updateProgressRegistration(reg.second);
+                for (auto && ind : *(reg.second)) {
+                    updateProgressRegistration(ind);
+                }
             }
         }
 
@@ -185,27 +220,25 @@ namespace newdigate
              audiosampler<AudioPlaySdResmp, sdsampleplayernote>::update(); 
         }
 
-        void updateProgressRegistration(ProgressRegistration *reg) {
-            if (reg->_voice != nullptr)
-            { 
-                if  (reg->_voice->isPlaying() ) {
-                    int bufferPosition = reg->_voice->getBufferPosition1();
-                    int progress = (bufferPosition * reg->_resolution) / reg->_voice->getLoopFinish();
-                    if (progress != reg->_lastValue) {
-                        // call callback
-                        reg->_callback(reg->_id, progress);
-                        reg->_lastValue = progress;
-                    }
-                };
-            }
+        void updateProgressRegistration(ProgressIndictation *reg) {
+            if  (reg->_voice.isPlaying() ) {
+                int bufferPosition = reg->_voice.getBufferPosition1();
+                int progress = (bufferPosition * reg->_registration._resolution) / reg->_voice.getLoopFinish();
+                if (progress != reg->_lastValue) {
+                    // call callback
+                    reg->_registration._callback(reg->Id, progress);
+                    reg->_lastValue = progress;
+                }
+            };
         }
 
 
     protected:
         samplermodel<sdsampleplayernote> &_samplermodel;
-        unsigned int _currentId;
+        unsigned int _currentId, _currentIndicatorId;
         std::map<uint8_t, std::map<uint8_t, std::vector<ProgressRegistration*>*>*> _progressRegistrations;
         std::map<unsigned int, ProgressRegistration*> _progressRegistrationsById;
+        std::map<unsigned int, std::vector<ProgressIndictation*>*> _progressIndicatorsByRegId;
 
         static float calcPitchFactor(uint8_t note, uint8_t rootNoteNumber) {
             float result = powf(2.0, (note-rootNoteNumber) / 12.0);
