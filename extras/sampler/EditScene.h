@@ -20,7 +20,7 @@
 
 namespace newdigate {
 
-    const int NUM_EDIT_MENU_ITEMS = 6;
+    const int NUM_EDIT_MENU_ITEMS = 7;
     const uint16_t UA_blue = 0x01B5;
     const uint16_t Gold = 0xFEA0;
     const uint16_t Canary = 0xFFF3;
@@ -108,7 +108,7 @@ namespace newdigate {
                         value %= _directoryFileNameCache.getNumFileNames();
                         _currentNote->_filename = _directoryFileNameCache.getFileNameForIndex(value);
                         if (_currentNote->_filename != nullptr)  {
-                            AddProgressSubscription(_currentNote->_filename);
+                            AddProgressSubscription(_currentNote->_samplerNoteNumber, _currentNote->_samplerNoteChannel, _currentNote->_filename);
                         } 
                     }),
                 TeensyMenuItem(_settingsMenu, 
@@ -117,9 +117,9 @@ namespace newdigate {
                         if (_currentNote == nullptr)
                             return;
                         if (_currentNote->_playdirection == playdirection::playdirection_begin_forward) 
-                            v->drawString("fwd", 100, 0);
+                            v->drawString("fwd", 64, 0);
                         else
-                            v->drawString("bwd", 100, 0);
+                            v->drawString("bwd", 64, 0);
                     }, 
                     8, 
                     [&] (bool forward) { 
@@ -136,13 +136,39 @@ namespace newdigate {
                     }),
                 TeensyMenuItem(_settingsMenu, 
                     [&] (View *v) {
+                        v->drawString("trigger", 0, 0);
+                        if (_currentNote == nullptr)
+                            return;
+                        switch (_currentNote->_triggertype) {
+                            case triggertype::triggertype_play_until_end: v->drawString("to end", 64, 0); break;
+                            case triggertype::triggertype_play_until_subsequent_notedown: v->drawString("until next", 64, 0); break;
+                            case triggertype::triggertype_play_while_notedown : v->drawString("while down", 64, 0); break;
+                            default: v->drawString("---", 64, 0); break;
+                        } 
+                    }, 
+                    8, 
+                    [&] (bool forward) { 
+                        if (_currentNote == nullptr)
+                            return;
+                        long value =  (long)(_currentNote->_triggertype);
+                        if (forward) value++; else value--; // there are only two values; 
+                        if (value < 0) value = 2;
+                        value %= 3;
+                        _currentNote->_triggertype = (triggertype)value;
+                    },
+                    [] (bool noteDown, uint8_t channel, uint8_t pitch, uint8_t velocity) -> bool {
+                        //Serial.println("NoteDown...");
+                        return true;
+                    }),
+                TeensyMenuItem(_settingsMenu, 
+                    [&] (View *v) {
                         v->drawString("loop", 0, 0);
                         if (_currentNote == nullptr)
                             return;
                         switch (_currentNote->_playlooptype) {
-                            case playlooptype::playlooptype_once: v->drawString("none", 100, 0); break;
-                            case playlooptype::playlooptype_looping: v->drawString("loop", 100, 0); break;
-                            case playlooptype::playlooptype_pingpong: v->drawString("ping", 100, 0); break;
+                            case playlooptype::playlooptype_once: v->drawString("none", 64, 0); break;
+                            case playlooptype::playlooptype_looping: v->drawString("loop", 64, 0); break;
+                            case playlooptype::playlooptype_pingpong: v->drawString("ping", 64, 0); break;
                             default: break;
                         }
                     }, 
@@ -189,7 +215,7 @@ namespace newdigate {
             if (_currentNote != nullptr && _currentNote->_filename != nullptr) {
                 _wavePreview.Show(_currentNote->_filename);
                 _wavePreview.Update();
-                AddProgressSubscription(_currentNote->_filename);
+                AddProgressSubscription(_currentNote->_samplerNoteNumber, _currentNote->_samplerNoteChannel, _currentNote->_filename);
             } 
         }
 
@@ -246,9 +272,9 @@ namespace newdigate {
             }
             
             if (_currentNote->_filename != nullptr){
-                AddProgressSubscription(_currentNote->_filename);
                 if  (oldFileName != nullptr && strcmp(oldFileName, _currentNote->_filename) != 0)
                 {
+                    AddProgressSubscription(pitch, channel, _currentNote->_filename);
                     _wavePreview.Reset();
                 }
             } else {
@@ -261,9 +287,11 @@ namespace newdigate {
             return true; 
         }
 
-        void AddProgressSubscription(char *filename) {
+        void AddProgressSubscription(uint8_t noteNumber, uint8_t noteChannel, char *filename) {
             _playbackProgressSubscriptions.push_back(
                 _sampler.registerProgressCallback(
+                    noteNumber,
+                    noteChannel,
                     filename, 
                     _view._width, 
                     [&] (unsigned index, unsigned progress) {

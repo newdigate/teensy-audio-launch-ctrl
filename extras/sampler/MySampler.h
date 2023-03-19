@@ -15,21 +15,28 @@ namespace newdigate
 
     class ProgressRegistration {
         public:
-            ProgressRegistration(unsigned int id, unsigned int resolution, CallbackFn callback, char *filename) :
+            ProgressRegistration(unsigned int id, unsigned int resolution, CallbackFn callback, char *filename, uint8_t noteNumber, uint8_t noteChannel) :
                 _id(id),
                 _resolution(resolution),
                 _callback(callback),
-                _filename(filename)
+                _filename(filename),
+                _noteNumber(noteNumber),
+                _noteChannel(noteChannel)
             {
             }
 
+            ProgressRegistration(const ProgressRegistration& progressRegistration) = delete;
+
             virtual ~ProgressRegistration() { }
+
             unsigned int _id;
             unsigned int _resolution;
             CallbackFn _callback;
             unsigned int _lastValue = 0;
             AudioPlaySdResmp *_voice = nullptr;
             char *_filename;
+            uint8_t _noteNumber;
+            uint8_t _noteChannel;
     };
 
 
@@ -73,13 +80,13 @@ namespace newdigate
             }
 
             audioplay.playWav(sample->_filename);
-            updateRegistrations(sample->_filename, voice);
+            updateRegistrations(noteNumber, noteChannel, sample->_filename, voice);
 
             //sample->_voice = voice;
         }
 
         void voiceOffEvent(AudioPlaySdResmp *voice, sdsampleplayernote *sample, uint8_t noteNumber, uint8_t noteChannel) override {
-
+            
         }
 
         void voiceRetriggerEvent(AudioPlaySdResmp *voice, sdsampleplayernote *sample, uint8_t noteNumber, uint8_t noteChannel, uint8_t velocity) override {
@@ -93,12 +100,21 @@ namespace newdigate
 
 
 
-        unsigned int registerProgressCallback(char *filename, unsigned int resolution, CallbackFn callback) {
-            if (_progressRegistrations.find(filename) == _progressRegistrations.end()) {
-                _progressRegistrations[filename] = new std::vector<ProgressRegistration*>();
+        unsigned int registerProgressCallback(uint8_t noteNumber, uint8_t noteChannel, char *filename, unsigned int resolution, CallbackFn callback) {
+            std::map<uint8_t, std::vector< ProgressRegistration*>*> *progressRegistrationsForChannel = _progressRegistrations[noteChannel];
+            if (progressRegistrationsForChannel == nullptr) {
+                progressRegistrationsForChannel = new std::map<uint8_t, std::vector< ProgressRegistration*>*>();
+                _progressRegistrations[noteChannel] = progressRegistrationsForChannel;
             }
-            ProgressRegistration *progReg = new ProgressRegistration(_currentId++, resolution, callback, filename);
-            _progressRegistrations[filename]->push_back(progReg);
+
+            std::vector<ProgressRegistration*> *progressRegsForNoteAndChannel = (*progressRegistrationsForChannel)[noteNumber];
+            if (progressRegsForNoteAndChannel == nullptr) {
+                progressRegsForNoteAndChannel = new std::vector<ProgressRegistration*>();
+                (*progressRegistrationsForChannel)[noteNumber] = progressRegsForNoteAndChannel;
+            }
+
+            ProgressRegistration *progReg = new ProgressRegistration(_currentId++, resolution, callback, filename, noteNumber, noteChannel);
+            progressRegsForNoteAndChannel->push_back(progReg);
             _progressRegistrationsById[progReg->_id] = progReg;
             return progReg->_id;
         }
@@ -107,30 +123,50 @@ namespace newdigate
             ProgressRegistration *progReg = _progressRegistrationsById[registrationId];
             if (progReg == nullptr)
                 return;
+
+            uint8_t noteNumber = progReg->_noteNumber;
+            uint8_t noteChannel = progReg->_noteChannel;
+
             _progressRegistrationsById.erase(registrationId);
 
-            std::vector<ProgressRegistration*>* regsForFileName = _progressRegistrations[progReg->_filename];
-            if (regsForFileName != nullptr) {
-                std::vector<ProgressRegistration*>::iterator position = 
-                    std::find_if(
-                        regsForFileName->begin(), 
-                        regsForFileName->end(), 
-                        [registrationId] 
-                            (ProgressRegistration* pr) -> bool { 
-                                return pr->_id == registrationId; 
-                            });
-                if (position != regsForFileName->end())
-                    regsForFileName->erase(position);
+            std::map<uint8_t, std::vector< ProgressRegistration*>*> *progressRegistrationsForChannel = _progressRegistrations[noteChannel];
+            if (progressRegistrationsForChannel == nullptr) {
+                delete progReg;
+                return;
             }
+
+            std::vector<ProgressRegistration*> *progressRegsForNoteAndChannel = (*progressRegistrationsForChannel)[noteNumber];
+            if (progressRegsForNoteAndChannel == nullptr) {
+                delete progReg;
+                return;
+            }
+
+            std::vector<ProgressRegistration*>::iterator position = 
+                std::find_if(
+                    progressRegsForNoteAndChannel->begin(), 
+                    progressRegsForNoteAndChannel->end(), 
+                    [registrationId] 
+                        (ProgressRegistration* pr) -> bool { 
+                            return pr->_id == registrationId; 
+                        });
+
+            if (position != progressRegsForNoteAndChannel->end())
+                progressRegsForNoteAndChannel->erase(position);
+            
             delete progReg;
         }
 
-        void updateRegistrations(char *filename, AudioPlaySdResmp *voice) {
-            std::vector<ProgressRegistration*>* listOfProgressForFileName = _progressRegistrations[filename];
-            if (listOfProgressForFileName == nullptr)
+        void updateRegistrations(uint8_t noteNumber, uint8_t noteChannel, char *filename, AudioPlaySdResmp *voice) {
+            std::map<uint8_t, std::vector<ProgressRegistration*>*>* progressRegistrationsForChannel = _progressRegistrations[noteChannel];
+            if (progressRegistrationsForChannel == nullptr)
                 return;
 
-            for (auto && reg : *listOfProgressForFileName) {
+            std::vector<ProgressRegistration*> *progressRegsForNoteAndChannel = (*progressRegistrationsForChannel)[noteNumber];
+            if (progressRegsForNoteAndChannel == nullptr) {
+                return;
+            }
+
+            for (auto && reg : *progressRegsForNoteAndChannel) {
                 updateProgressRegistration(reg);
                 reg->_voice = voice;
             }
@@ -143,6 +179,10 @@ namespace newdigate
 
                 updateProgressRegistration(reg.second);
             }
+        }
+
+        void update() {
+             audiosampler<AudioPlaySdResmp, sdsampleplayernote>::update(); 
         }
 
         void updateProgressRegistration(ProgressRegistration *reg) {
@@ -164,7 +204,7 @@ namespace newdigate
     protected:
         samplermodel<sdsampleplayernote> &_samplermodel;
         unsigned int _currentId;
-        std::map<char*, std::vector<ProgressRegistration*>*> _progressRegistrations;
+        std::map<uint8_t, std::map<uint8_t, std::vector<ProgressRegistration*>*>*> _progressRegistrations;
         std::map<unsigned int, ProgressRegistration*> _progressRegistrationsById;
 
         static float calcPitchFactor(uint8_t note, uint8_t rootNoteNumber) {
@@ -172,157 +212,6 @@ namespace newdigate
             return result;
         }
     };
- /*
-//unpitchedsdwavsampler
-    class MyLoopSampler : public loopsampler {
-    public:
-//    loopsampler(samplermodel<sdloopaudiosample> &samplermodel, polyphonic<audiovoice<AudioPlaySdResmp>> &polyphony) : 
-
-        MyLoopSampler(samplermodel<sdsampleplayernote<AudioPlaySdResmp>> &model, polyphonic<AudioPlaySdResmp> &polyphony) : 
-            loopsampler(model, polyphony), 
-            _currentId(0),
-            _progressRegistrations(),
-            _progressRegistrationsById()
-        {
-        }
-        
-        virtual ~MyLoopSampler() {
-
-        }
-
-        void removeAllSamples() {
-            for (auto && sample : _audiosamples) {
-                //if (sample->_filename)
-                //    delete [] sample->_filename;
-                delete sample;
-            }
-            _audiosamples.clear();
-        }
-        
-        unsigned int registerProgressCallback(char *filename, unsigned int resolution, CallbackFn callback) {
-            if (_progressRegistrations.find(filename) == _progressRegistrations.end()) {
-                _progressRegistrations[filename] = new std::vector<ProgressRegistration*>();
-            }
-            ProgressRegistration *progReg = new ProgressRegistration(_currentId++, resolution, callback, filename);
-            _progressRegistrations[filename]->push_back(progReg);
-            _progressRegistrationsById[progReg->_id] = progReg;
-            return progReg->_id;
-        }
-
-        void unregisterProgressCallback(unsigned int registrationId){
-            ProgressRegistration *progReg = _progressRegistrationsById[registrationId];
-            if (progReg == nullptr)
-                return;
-            _progressRegistrationsById.erase(registrationId);
-
-            std::vector<ProgressRegistration*>* regsForFileName = _progressRegistrations[progReg->_filename];
-            if (regsForFileName != nullptr) {
-                std::vector<ProgressRegistration*>::iterator position = 
-                    std::find_if(
-                        regsForFileName->begin(), 
-                        regsForFileName->end(), 
-                        [registrationId] 
-                            (ProgressRegistration* pr) -> bool { 
-                                return pr->_id == registrationId; 
-                            });
-                if (position != regsForFileName->end())
-                    regsForFileName->erase(position);
-            }
-            delete progReg;
-        }
-
-        void updateRegistrations(char *filename, AudioPlaySdResmp *voice) {
-            std::vector<ProgressRegistration*>* listOfProgressForFileName = _progressRegistrations[filename];
-            if (listOfProgressForFileName == nullptr)
-                return;
-
-            for (auto && reg : *listOfProgressForFileName) {
-                updateProgressRegistration(reg);
-                reg->_voice = voice;
-            }
-        }
-
-        void updateProgress() {
-            for (auto && reg : _progressRegistrationsById) {
-                if (reg.second == nullptr)
-                    return;
-
-                updateProgressRegistration(reg.second);
-            }
-        }
-
-        void updateProgressRegistration(ProgressRegistration *reg) {
-            if (reg->_voice != nullptr)
-            { 
-                if  (reg->_voice->isPlaying() ) {
-                    int bufferPosition = reg->_voice->getBufferPosition1();
-                    int progress = (bufferPosition * reg->_resolution) / reg->_voice->getLoopFinish();
-                    if (progress != reg->_lastValue) {
-                        // call callback
-                        reg->_callback(reg->_id, progress);
-                        reg->_lastValue = progress;
-                    }
-                };
-            }
-        }
-
-    protected:
-        unsigned int _currentId;
-        std::map<char*, std::vector<ProgressRegistration*>*> _progressRegistrations;
-        std::map<unsigned int, ProgressRegistration*> _progressRegistrationsById;
-
-
-        void noteEventCallback(uint8_t voice, uint8_t noteNumber, uint8_t noteChannel, uint8_t velocity, bool isNoteOn, bool retrigger)    
-        {
-            uint8_t numVoices = __base::_numVoices;
-            if (voice < numVoices) {
-                audiovoice<AudioPlaySdResmp> *audio_voice = __base::_voices[voice];
-                sdsampleplayernote<AudioPlaySdResmp> *sample = _model.getNoteForChannelAndKey(noteChannel, noteNumber);
-                if (sample != nullptr && sample->_filename != nullptr) {
-                    if (isNoteOn) {                
-                        if (audio_voice->_audiomixer != nullptr) {                        
-                            audio_voice->_audiomixer->gain( audio_voice->_mixerChannel, velocity / 255.0);
-                        }
-                        if (audio_voice->_audiomixer2 != nullptr) {                        
-                            audio_voice->_audiomixer2->gain(audio_voice->_mixerChannel, velocity / 255.0);
-                        }
-
-                        if (audio_voice->_audioenvelop != nullptr) {
-                            audio_voice->_audioenvelop->noteOn();
-                        }
-                        play(noteNumber, audio_voice, sample);
-                        updateRegistrations(sample->_filename, audio_voice->_audioplayarray);
-                    } else 
-                    {
-    //                    if (sample->_triggertype == triggertype_play_while_notedown)
-                        audio_voice->_audioplayarray->stop();
-                    }
-                }
-            }
-        }
-
-
-        static void play(uint8_t noteNumber, audiovoice<AudioPlaySdResmp> *voice, sdsampleplayernote<AudioPlaySdResmp> *sample) {
-
-            AudioPlaySdResmp &audioplay = *(voice->_audioplayarray);
-            switch (sample->_playdirection) {
-                case playdirection_begin_forward: audioplay.setPlaybackRate(1.0); break; 
-                case playdirection_begin_backward: audioplay.setPlaybackRate(-1.0); break;
-            }
-
-            switch (sample->_playlooptype) {
-                case playlooptype_once: audioplay.setLoopType(loop_type::looptype_none); break;
-                case playlooptype_looping: audioplay.setLoopType(loop_type::looptype_repeat); break;
-                case playlooptype_pingpong: audioplay.setLoopType(loop_type::looptype_pingpong); break;
-            }
-
-            audioplay.playWav(sample->_filename);
-            sample->_voice = voice->_audioplayarray;
-        }
-
-
-    };
-*/
 
 } // namespace newdigate
 

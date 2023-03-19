@@ -273,6 +273,7 @@ void loop() {
   sceneController.Process();
   MIDI.read();
   _sampler.updateProgress();
+  _sampler.update();
 }
 
 int st7735_main(int numArgs, char **args) {
