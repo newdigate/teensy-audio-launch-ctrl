@@ -48,6 +48,10 @@ include_directories(${teensy_gfx_INCLUDE_DIR})
 find_package(teensy_gfx_controls)
 include_directories(${teensy_gfx_controls_INCLUDE_DIR})
 
+
+find_package(arduino_tftpianoview)
+include_directories(${arduino_tftpianoview_INCLUDE_DIR})
+
 include_directories(../../src)
 
 add_executable(sample_launcher sample_launcher.cpp)

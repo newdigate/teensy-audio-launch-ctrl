@@ -12,6 +12,7 @@
 #include "RtMidiMIDI.h"
 #include "RtMidiTransport.h"
 #include "output_soundio.h"
+#include "TFTPianoDisplay.h"
 
 st7735_opengl_noinput tft = st7735_opengl_noinput(true, 20);
 
@@ -19,10 +20,10 @@ st7735_opengl_noinput tft = st7735_opengl_noinput(true, 20);
 #define KEY_NOTENUMBER_C1 36
 
 // GUItool: begin automatically generated code
-AudioPlaySdWav           playSdAudio3;     //xy=334.0000457763672,459.0000305175781
-AudioPlaySdWav           playSdAudio2;     //xy=338.0000305175781,382.0000305175781
-AudioPlaySdWav           playSdAudio4;     //xy=339.0000457763672,536
-AudioPlaySdWav           playSdAudio1;     //xy=340.0000419616699,302.0000238418579
+AudioPlaySdWav           playSdAudio3(SD);     //xy=334.0000457763672,459.0000305175781
+AudioPlaySdWav           playSdAudio2(SD);     //xy=338.0000305175781,382.0000305175781
+AudioPlaySdWav           playSdAudio4(SD);     //xy=339.0000457763672,536
+AudioPlaySdWav           playSdAudio1(SD);     //xy=340.0000419616699,302.0000238418579
 AudioMixer4              mixerLeft;         //xy=650.0000419616699,404.0000238418579
 AudioMixer4              mixerRight;         //xy=650.0000610351562,511.0000305175781
 AudioOutputSoundIO       sio_out1;       //xy=958.0000610351562,466.0000305175781
@@ -42,6 +43,8 @@ MIDI_CREATE_RTMIDI_INSTANCE(RtMidiMIDI, rtMIDI,  MIDI);
 
 polyphonic<AudioPlaySdWav>    _sampler;
 ST7735Display                 _st7735display(tft);
+TFTPianoDisplay<st7735_opengl_noinput> pianoDisplay1(tft, 3, 2, 0, 0); //tft, byte octaves, byte startOctave, byte x, byte y
+
 sdsampleplayermidicontroller  _controller(_sampler, _st7735display);
 
 AudioPlaySdWav           *_voices[NUM_VOICES] = {&playSdAudio1, &playSdAudio2, &playSdAudio3, &playSdAudio4};
@@ -83,6 +86,7 @@ void setup() {
 void loop() {
     MIDI.read();
     _controller.update();
+    pianoDisplay1.drawPiano();
     if (Serial.available()) {
         String s = Serial.readString();
         if (s == "r\n") {

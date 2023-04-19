@@ -24,6 +24,7 @@
 #include <TeensyVariablePlayback.h>
 #include "output_soundio.h"
 #include "MySampler.h"
+#include "DevicesScene.h"
 
 SDClass sd = SDClass("/Users/nicholasnewdigate/Development/sampler");
 
@@ -82,61 +83,59 @@ MIDI_CREATE_RTMIDI_INSTANCE(RtMidiMIDI, rtMIDI,  MIDI);
 
 using namespace Bounce2;
 Button button = Button();
+Button button2 = Button();
+Button button3 = Button();
 Encoder encoderLeftRight;
 Encoder encoderUpDown;
 typedef st7735_opengl<Encoder, Button> st7735_ogl;
-typedef SceneController< st7735_opengl<Encoder, Button>, Encoder, Button> MySceneController;
+typedef SceneController< VirtualView, Encoder, Button> MySceneController;
+
 audiovoicepolyphonic<AudioPlaySdResmp> _polyphony;
 
 //newdigate::Sampler _sampler = newdigate::Sampler(model, _polyphony);
 newdigate::MyLoopSampler _sampler = newdigate::MyLoopSampler(model, _polyphony);
-st7735_ogl _display(true, 20, &encoderLeftRight, &encoderUpDown, &button);
-MySceneController sceneController(_display, encoderLeftRight, encoderUpDown, button);
+st7735_ogl _display(true, 0, &encoderLeftRight, &encoderUpDown, &button, &button2, &button3);
+
+VirtualView _virtualDisplay(_display, 0, 0, 128, 128);
+MySceneController sceneController(_virtualDisplay, encoderLeftRight, encoderUpDown, button, button2, button3);
 
 void DrawSettingsMenuItem0(View *v);
 
 int _directionValue = 64;
 newdigate::WavePreviewBuilder _wavePreviewBuilder(sd);
 
-#define NUM_SETTINGS_MENU_ITEMS 20
+#define NUM_SETTINGS_MENU_ITEMS 2
 const uint16_t Oxford_blue3 = 0x0109;
 TeensyMenu settingsMenu = TeensyMenu( _display, 0, 0, 128, 128, Oxford_blue3, ST7735_BLACK );
 TeensyMenuItem settingMenuItems[NUM_SETTINGS_MENU_ITEMS] = {
-  TeensyMenuItem(settingsMenu, DrawSettingsMenuItem0, 20),
+/*
+            View &view, 
+            std::function<void(View*)> updateWithView, 
+            unsigned int height, 
+            std::function<void(bool forward)> menuValueScroll = nullptr,
+            std::function<bool(bool noteDown, uint8_t channel, uint8_t pitch, uint8_t velocity)> menuMidiNoteEvent = nullptr,
+            std::function<bool(uint8_t channel, uint8_t data1, uint8_t data2)> menuMidiCCEvent = nullptr,
+            std::function<void(uint8_t buttonNumber)> buttonDownEvent = nullptr
+*/
   TeensyMenuItem(settingsMenu, 
     [] (View *v) {
-      v->drawString("direction  ", 0, 0);
-      v->drawNumber(_directionValue, 100, 0);
+      v->drawString("reset notes", 0, 0);
     }, 
     8, 
     [] (bool forward) { 
       if (forward) _directionValue++; else _directionValue--; 
     },
     [] (bool noteDown, uint8_t channel, uint8_t pitch, uint8_t velocity) -> bool {
-      Serial.println("NoteDown...");
       return true;
+    }, 
+    nullptr,
+    // button Down
+    [] (uint8_t buttonNumber) {
+      switch (buttonNumber) {
+        case 2: _sampler.turnOffAllNotesStillPlaying(); break;
+      }
     }),
-  TeensyMenuItem(settingsMenu, [] (View *v) {v->drawString("loop  ", 0, 0);}, 8), 
-  TeensyMenuItem(settingsMenu, [] (View *v) {v->drawString("pan  ", 0, 0);}, 8), 
-  TeensyMenuItem(settingsMenu, [] (View *v) {v->drawString("sample  ", 0, 0);}, 8),
-  TeensyMenuItem(settingsMenu, [] (View *v) {v->drawString("tune  ", 0, 0);}, 8), 
-  TeensyMenuItem(settingsMenu, [] (View *v) {v->drawString("volume  ", 0, 0);}, 8),
-  TeensyMenuItem(settingsMenu, [] (View *v) {v->drawString("Menu 8  ", 0, 0);}, 8),
-  TeensyMenuItem(settingsMenu, [] (View *v) {v->drawString("Menu 9  ", 0, 0);}, 8), 
-  TeensyMenuItem(settingsMenu, [] (View *v) {v->drawString("Menu10  ", 0, 0);}, 8),
-  TeensyMenuItem(settingsMenu, [] (View *v) {v->drawString("Menu11  ", 0, 0);}, 8), 
-  TeensyMenuItem(settingsMenu, [] (View *v) {v->drawString("Menu12  ", 0, 0);}, 8), 
-  TeensyMenuItem(settingsMenu, [] (View *v) {v->drawString("Menu13  ", 0, 0);}, 8), 
-  TeensyMenuItem(settingsMenu, [] (View *v) {v->drawString("Menu14  ", 0, 0);}, 8), 
-  TeensyMenuItem(settingsMenu, [] (View *v) {v->drawString("Menu15  ", 0, 0);}, 8), 
-  TeensyMenuItem(settingsMenu, [] (View *v) {v->drawString("Menu16  ", 0, 0);}, 8), 
-  TeensyMenuItem(settingsMenu, [] (View *v) {v->drawString("Menu17  ", 0, 0);}, 8), 
-  TeensyMenuItem(settingsMenu, [] (View *v) {v->drawString("Menu18  ", 0, 0);}, 8), 
-  TeensyMenuItem(settingsMenu, [] (View *v) {v->drawString("Menu19  ", 0, 0);}, 8), 
-  TeensyMenuItem(settingsMenu, [] (View *v) {
-    v->drawPixel(0,0, ST7735_WHITE);
-    v->drawString("Menu20  ", 0, 0);
-  }, 8), 
+  TeensyMenuItem(settingsMenu, [] (View *v) {v->drawString("xxx", 0, 0);}, 8)
 };
 
 TFTPianoDisplay pianoDisplay1(settingMenuItems[0], 3, 2, 0, 9); //tft, byte octaves, byte startOctave, byte x, byte y
@@ -146,11 +145,12 @@ void DrawSettingsMenuItem0(View *v) {
   settingMenuItems[0].drawString("trigger pad:  ", 0, 0);
 }
 
+newdigate::DeviceManager deviceManager = newdigate::DeviceManager();
 newdigate::DirectoryFileNameCache directoryFileNameCache(sd);
 
 newdigate::EditScene editScene(model, _display, directoryFileNameCache, sd, _sampler);
 
-
+newdigate::DevicesScene * devicesScene = new newdigate::DevicesScene(_display, deviceManager);
 
 Scene settingsScene = Scene(
                         _bmp_settings_on, 
@@ -177,7 +177,7 @@ Scene settingsScene = Scene(
 
                         // void buttonPressed(unsigned int index)
                         [] (unsigned index) {
-
+                          settingsMenu.ButtonDown(index);
                         }, 
 
                         // void rotary1Changed(bool forward)
@@ -241,6 +241,7 @@ void setup() {
   _display.fillScreen(ST7735_BLACK);
 
   sceneController.AddScene(&settingsScene);
+  sceneController.AddScene(devicesScene);
   sceneController.AddScene(&editScene);
   sceneController.AddScene(&playScene);
 
@@ -291,6 +292,8 @@ int st7735_main(int numArgs, char **args) {
 
 void handleNoteOn(uint8_t channel, uint8_t pitch, uint8_t velocity)
 {
+    Serial.printf("MIDI IN: handleNoteOn note:%d; channel:%d; \r\n", pitch, channel);
+ 
     bool processedMessage = sceneController.MidiNoteUpDown(true, channel, pitch, velocity);
     //if (processedMessage) return;
     _sampler.trigger(pitch, channel, velocity, true);/*
@@ -319,28 +322,13 @@ void handleNoteOn(uint8_t channel, uint8_t pitch, uint8_t velocity)
 
 void handleNoteOff(uint8_t channel, uint8_t pitch, uint8_t velocity)
 {
-  sceneController.MidiNoteUpDown(false, channel, pitch, velocity);
-  _sampler.trigger(pitch, channel, velocity, false);/*c
-  sdsampleplayernote* sample = model.getNoteForChannelAndKey(channel, pitch);
-  if (sample != nullptr) {
-    switch (sample->_triggertype) {
-        case triggertype_play_until_end :
-        case triggertype_play_until_subsequent_notedown :
-        break;
-        
-        case triggertype_play_while_notedown :
-        {   
-            if (sample->_voice != nullptr) {
-                sample->_voice->stop();
-                sample->_voice = nullptr;
-            }
-            break;
-        }
 
-        default: break;
-    }
+  if (sceneController.MidiNoteUpDown(false, channel, pitch, velocity)){
+    return;
   }
-  */
+
+  Serial.printf("MIDI IN: handleNoteOff note:%d; channel:%d; \r\n", pitch, channel);
+  _sampler.trigger(pitch, channel, velocity, false);
 }
 
 void handleControlChange(uint8_t channel, uint8_t data1, uint8_t data2) 

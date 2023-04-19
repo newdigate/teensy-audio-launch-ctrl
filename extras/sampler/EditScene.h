@@ -265,7 +265,7 @@ namespace newdigate {
 
             _currentNote = _samplerModel.getNoteForChannelAndKey(channel, pitch);
             if (_currentNote == nullptr) {
-                _currentNote = new sdsampleplayernote();
+                _currentNote = new sdsampleplayernote();                
                 _currentNote->_samplerNoteChannel = channel;
                 _currentNote->_samplerNoteNumber = pitch;
                 _currentNote = _samplerModel.allocateNote(channel, pitch, _currentNote);
@@ -294,9 +294,7 @@ namespace newdigate {
                     noteChannel,
                     filename, 
                     _view._width, 
-                    [&] (unsigned index, unsigned progress) {
-                        this->ProgressUpdateReceived(index, progress);
-                    })
+                    std::bind( & EditScene::ProgressUpdateReceived, this, std::placeholders::_1, std::placeholders::_2))
             );
         }
         void RemoveAllProgressSubscriptions() {

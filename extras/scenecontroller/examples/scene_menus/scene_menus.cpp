@@ -2,14 +2,21 @@
 #include <ST7735_t3.h>
 #include <st7735_opengl.h>
 #include <st7735_opengl_main.h>
-#include "st7735display.h"
-// required libraries
-#include "ST7735_t3.h"         // high speed display that ships with Teensy
-// required only if you are using an encoder to handle user input, mechanical buttons work as well
+#include "ST7735_t3.h"         
 #include <Encoder.h>
 #include <Bounce2.h>
 #include "icons.h"
 #include "scenecontroller.h"
+#include "TFTPianoDisplay.h"
+#include <Audio.h>
+#include <SD.h>
+#include <MIDI.h>
+#include "RtMidiMIDI.h"
+#include "RtMidiTransport.h"
+#include "output_soundio.h"
+
+st7735_opengl_noinput tft = st7735_opengl_noinput(true, 20);
+TFTPianoDisplay<st7735_opengl_noinput> pianoDisplay1(tft, 3, 2, 0, 0); //tft, byte octaves, byte startOctave, byte x, byte y
 
 #define DEBOUNCE    150
 
@@ -21,6 +28,8 @@ Scene playScene = Scene(_bmp_play_on, _bmp_play_off, 16, 16);
 using namespace Bounce2;
 
 Button button = Button();
+Button button2 = Button();
+Button button3 = Button();
 
 void ProcessMainMenu();
 void ProcessWirelessMenu();
@@ -31,11 +40,12 @@ Encoder encoderLeftRight;
 Encoder encoderUpDown;
 
 st7735_opengl<Encoder, Button> Display(true, 20, &encoderLeftRight, &encoderUpDown, &button);
-
-SceneController< st7735_opengl<Encoder, Button>, Encoder, Button>  sceneController(Display, encoderLeftRight, encoderUpDown, button);
+VirtualView _virtualDisplay(Display, 0, 0, 128, 128);
+SceneController< VirtualView, Encoder, Button>  sceneController(_virtualDisplay, encoderLeftRight, encoderUpDown, button, button2, button3);
 
 void updateSettingsScene() {
   Display.fillScreen(ST7735_BLUE);
+  pianoDisplay1.drawFullPiano();
 }
 
 void updateEditScene() {

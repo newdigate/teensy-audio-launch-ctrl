@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(scene_menus)
+project(sd_menu_example)
 set(CMAKE_CXX_STANDARD 17)
 
 find_package(teensy_x86_stubs)
@@ -26,9 +26,6 @@ include_directories(${teensy_x86_sd_stubs_INCLUDE_DIR})
 find_package(teensy_x86_midi_stubs)
 include_directories(${teensy_x86_midi_stubs_INCLUDE_DIR})
 
-find_package(arduino_tftpianoview)
-include_directories(${arduino_tftpianoview_INCLUDE_DIR})
-
 find_path(RTMIDI_INCLUDE_DIR RtMidi.h
   PATHS
     /usr/local/include
@@ -45,41 +42,34 @@ include_directories(${teensy_st7735_linux_stubs_INCLUDE_DIR})
 find_package(teensy_st7735_linux_opengl)
 include_directories(${teensy_st7735_linux_extras_opengl_INCLUDE_DIR})
 
-find_package(teensy_gfx)
-include_directories(${teensy_gfx_INCLUDE_DIR})
-
-find_package(teensy_gfx_controls)
-include_directories(${teensy_gfx_controls_INCLUDE_DIR})
-
-include_directories(../../../../src)
+include_directories(../../src)
+include_directories(../ILI9341_t3_Menu)
 
 add_definitions(-fms-extensions)
 add_definitions(-DArduino=146)
 
-add_executable(scene_menus scene_menus.cpp)
+add_executable(sd_menu_example sd_menu_example.cpp)
 
-target_link_libraries(scene_menus ${teensy_x86_stubs_LIBS})
-target_link_libraries(scene_menus ${teensy_x86_sd_stubs_LIBS})
-target_link_libraries(scene_menus ${teensy_x86_bounce2_stubs_LIBS})
-target_link_libraries(scene_menus ${teensy_x86_encoder_stubs_LIBS})
-target_link_libraries(scene_menus ${teensy_audio_x86_stubs_LIBS})
-target_link_libraries(scene_menus ${teensy_audio_x86_stubs_soundio_LIBS})
-target_link_libraries(scene_menus -L/usr/local/lib/ rtmidi)
-target_link_libraries(scene_menus ${teensy_variable_playback_LIBS})
-target_link_libraries(scene_menus ${teensy_x86_midi_stubs_LIBS})
-target_link_libraries(scene_menus ${teensy_x86_midi_stubs_rtmidi_LIBS})
-target_link_libraries(scene_menus ${teensy_st7735_linux_stubs_LIBS})
-target_link_libraries(scene_menus ${teensy_st7735_linux_extras_opengl_LIBS})
-target_link_libraries(scene_menus ${teensy_x86_bounce2_stubs_LIBS})
-target_link_libraries(scene_menus ${teensy_gfx_LIBS})
-target_link_libraries(scene_menus ${teensy_gfx_controls_LIBS})
+target_link_libraries(sd_menu_example ${teensy_x86_stubs_LIBS})
+target_link_libraries(sd_menu_example ${teensy_x86_sd_stubs_LIBS})
+target_link_libraries(sd_menu_example ${teensy_x86_bounce2_stubs_LIBS})
+target_link_libraries(sd_menu_example ${teensy_x86_encoder_stubs_LIBS})
+target_link_libraries(sd_menu_example ${teensy_audio_x86_stubs_LIBS})
+target_link_libraries(sd_menu_example ${teensy_audio_x86_stubs_soundio_LIBS})
+target_link_libraries(sd_menu_example -L/usr/local/lib/ rtmidi)
+target_link_libraries(sd_menu_example ${teensy_variable_playback_LIBS})
+target_link_libraries(sd_menu_example ${teensy_x86_midi_stubs_LIBS})
+target_link_libraries(sd_menu_example ${teensy_x86_midi_stubs_rtmidi_LIBS})
+target_link_libraries(sd_menu_example ${teensy_st7735_linux_stubs_LIBS})
+target_link_libraries(sd_menu_example ${teensy_st7735_linux_extras_opengl_LIBS})
+target_link_libraries(sd_menu_example ${teensy_x86_bounce2_stubs_LIBS})
 
 include(opengl.cmake)
-target_link_libraries(scene_menus ${LIBS})
+target_link_libraries(sd_menu_example ILI9341_t3_Menu ${LIBS})
 
-target_link_libraries(scene_menus "-L/usr/local/lib -lsoundio")
+target_link_libraries(sd_menu_example "-L/usr/local/lib -lsoundio")
 if  (APPLE)
-        target_link_libraries(scene_menus
+        target_link_libraries(sd_menu_example
                 "-framework CoreServices"
                 "-framework CoreAudio"
                 "-framework Foundation"
