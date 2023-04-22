@@ -80,6 +80,11 @@ namespace newdigate {
                 TeensyMenuItem(_settingsMenu, 
                     [&] (View *v) 
                     {   
+                        if (!_sampleMenuItemNeedsUpdate && !_settingsMenu.NeedsUpdate) 
+                            return;
+                        
+                        _sampleMenuItemNeedsUpdate = false;
+                        
                         v->drawString("sample  ", 0, 0);
 
                         if (_currentNote == nullptr) {
@@ -90,8 +95,11 @@ namespace newdigate {
                             v->setTextSize(2);
                             v->drawString(_currentNote->_filename, 0, 8);
                             v->setTextSize(1);
-                            _wavePreview.Show(_currentNote->_filename);
-                        }
+                            if (_sampleMenuItemPrevFileName == nullptr || _sampleMenuItemPrevFileName != _currentNote->_filename )
+                                _wavePreview.Show(_currentNote->_filename);
+                            else   
+                                _wavePreview.Update();                              
+                        } 
                     }, 
                     24,
                     [&] (bool forward) { 
@@ -110,6 +118,7 @@ namespace newdigate {
                         if (_currentNote->_filename != nullptr)  {
                             AddProgressSubscription(_currentNote->_samplerNoteNumber, _currentNote->_samplerNoteChannel, _currentNote->_filename);
                         } 
+                        _sampleMenuItemNeedsUpdate = true;
                     }),
                 TeensyMenuItem(_settingsMenu, 
                     [&] (View *v) {
@@ -190,7 +199,9 @@ namespace newdigate {
             _directoryFileNameCache(directoryFileNameCache),
             _wavePreview(_view, sd, 128, 20, 0, 0),
             _sampler(sampler),
-            _playbackProgressSubscriptions()
+            _playbackProgressSubscriptions(),
+            _sampleMenuItemNeedsUpdate(true),
+            _sampleMenuItemPrevFileName(nullptr)
         {
             for (int i = 0; i < NUM_EDIT_MENU_ITEMS; i++) {
                 _settingsMenu.AddControl(&_settingMenuItems[i]);
@@ -325,6 +336,8 @@ namespace newdigate {
         WavePreview _wavePreview;
         MyLoopSampler &_sampler;
         std::vector<unsigned int> _playbackProgressSubscriptions;
+        bool _sampleMenuItemNeedsUpdate;
+        char *_sampleMenuItemPrevFileName;
 
     };
 
