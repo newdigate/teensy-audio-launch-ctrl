@@ -13,10 +13,57 @@
 #include "teensy_controls.h"
 
 namespace newdigate {
+    class MidiRouter;
+
+    class Device {
+    public:
+        Device() :  _outputConnections() {
+        }
+
+        Device(const Device &device) = delete;
+
+        virtual ~Device() {
+        }
+
+        virtual void noteEvent(uint8_t noteNumber, uint8_t noteChannel, uint8_t velocity) = 0;   
+        virtual void ccEvent(uint8_t ccNumber, uint8_t ccChannel, uint8_t value) = 0;
+
+        void broadcastNoteEvent(uint8_t noteNumber, uint8_t noteChannel, uint8_t velocity) {
+            for (auto && device : _outputConnections) {
+                device->noteEvent(noteNumber, noteChannel, velocity);
+            }
+        }
+    protected:
+        friend class MidiRouter;
+        std::vector<Device*> _outputConnections;  
+    };
+
+
+    class MidiRouter {
+    public:
+        MidiRouter() {
+        }
+
+        MidiRouter(const MidiRouter &router) = delete;
+
+        virtual ~MidiRouter() {
+        }
+
+        void Connect(Device *input, Device *output){
+            input->_outputConnections.push_back(output);
+        }
+    };
 
     class DeviceManager {
     public:
+        DeviceManager() : 
+            _devices() {
+        }
 
+        DeviceManager(const DeviceManager &deviceManager) = delete;
+
+        virtual ~DeviceManager() {
+        }
 
         int GetNumberOfAvailableDeviceTypes() {
             return _deviceTypeNames.size();
@@ -27,6 +74,7 @@ namespace newdigate {
         }
 
     private:
+        std::vector<Device *> _devices;
         static const std::vector<const char*> _deviceTypeNames; 
     };
     const std::vector<const char*> DeviceManager::_deviceTypeNames = { "SD sampler", "Pattern Sequencer", "Step Sequencer"}; 
