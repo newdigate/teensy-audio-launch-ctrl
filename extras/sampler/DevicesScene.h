@@ -33,9 +33,16 @@ namespace newdigate {
 
     class SelectDeviceDialog : public TeensyMenu {
     public:
-        SelectDeviceDialog(View &view, DeviceManager & deviceManager) : 
+        SelectDeviceDialog(
+            View &view, 
+            DeviceManager & deviceManager, 
+            SceneController<VirtualView, Encoder, Bounce2::Button> &sceneController,
+            std::function<void()> onClose
+        ) : 
             TeensyMenu(view, 100, 100, 13, 13, ST7735_BLACK, Gold),
-            _selectionMenuItems() 
+            _selectionMenuItems(),
+            _sceneController(sceneController),
+            _onClose(onClose)
         {
             for (int i = 0; i < deviceManager.GetNumberOfAvailableDeviceTypes(); i++) {
                 const char * deviceTypeName = deviceManager.GetNameOfDeviceTypeNumber(i);
@@ -47,16 +54,23 @@ namespace newdigate {
                         std::bind( &SelectDeviceDialog::menuValueScroll, this, std::placeholders::_1), 
                         std::bind( &SelectDeviceDialog::menuMidiNoteEvent, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4), 
                         std::bind( &SelectDeviceDialog::menuMidiCCEvent, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), 
-                        std::bind( &SelectDeviceDialog::buttonDownEvent, this, std::placeholders::_1));
+                        std::bind( &SelectDeviceDialog::buttonDownEvent, this, std::placeholders::_1, i));
                 _selectionMenuItems.push_back(item);
                 AddControl(item);
             }
         } 
 
         SelectDeviceDialog(const SelectDeviceDialog & selectDeviceDialog) = delete;
-        virtual ~SelectDeviceDialog() {}
+        virtual ~SelectDeviceDialog() {
+            for (auto && teensyMenuItem : _selectionMenuItems) {
+                delete teensyMenuItem;
+            }
+            _selectionMenuItems.clear();
+        }
     private:
         std::vector<TeensyMenuItem*> _selectionMenuItems;
+        SceneController<VirtualView, Encoder, Bounce2::Button> &_sceneController;
+        std::function<void()> _onClose;
 
         void menuItemDraw(View *v, const char * label){
             v->drawString(label, 0, 0);
@@ -74,8 +88,12 @@ namespace newdigate {
             return false;
         }  
 
-        void buttonDownEvent(uint8_t buttonNumber) {
-
+        void buttonDownEvent(uint8_t buttonNumber, int selectedIndex) {
+            Serial.printf("device selected: %d\n", selectedIndex);
+            _sceneController.PopDialog();
+            if (_onClose != nullptr) {
+                _onClose();
+            }
         }
 
     };
@@ -184,12 +202,16 @@ namespace newdigate {
 
         void ShowSelectDeviceTypeDialog() {
             if (_selectDeviceDialog == nullptr) {
-                _selectDeviceDialog = new SelectDeviceDialog(_view, _deviceManager);
+                _selectDeviceDialog = new SelectDeviceDialog(_view, _deviceManager, _sceneController, std::bind(&DevicesScene::SelectDeviceTypeDialogClose, this));
                 _selectDeviceDialog->NeedsUpdate = true;
                 _sceneController.AddDialog(_selectDeviceDialog);
             } 
         }
 
+        void SelectDeviceTypeDialogClose() {
+            delete _selectDeviceDialog;
+            _selectDeviceDialog = nullptr;
+        }
 
     private:
         View & _view;
