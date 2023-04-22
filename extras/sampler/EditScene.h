@@ -36,7 +36,7 @@ namespace newdigate {
                 16, 16), 
             _samplerModel(samplerModel),
             _view(view),
-            _settingsMenu(view, 0, 34, 128, 128-34, Oxford_blue2, ST7735_BLACK),
+            _settingsMenu(view, 128, 128-34, 0, 34, Oxford_blue2, ST7735_BLACK),
             _triggerNoteControlNeedsUpdate(true),
             _triggerNoteControl(view, [&] () { 
                 if (_triggerNoteControlNeedsUpdate) {

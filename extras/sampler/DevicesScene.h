@@ -41,7 +41,7 @@ namespace newdigate {
                 const char * deviceTypeName = deviceManager.GetNameOfDeviceTypeNumber(i);
                 TeensyMenuItem *item = 
                     new TeensyMenuItem(
-                        view,
+                        *this,
                         std::bind( &SelectDeviceDialog::menuItemDraw, this, std::placeholders::_1, deviceTypeName), 
                         8,
                         std::bind( &SelectDeviceDialog::menuValueScroll, this, std::placeholders::_1), 
@@ -49,6 +49,7 @@ namespace newdigate {
                         std::bind( &SelectDeviceDialog::menuMidiCCEvent, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), 
                         std::bind( &SelectDeviceDialog::buttonDownEvent, this, std::placeholders::_1));
                 _selectionMenuItems.push_back(item);
+                AddControl(item);
             }
         } 
 
@@ -123,20 +124,21 @@ namespace newdigate {
 
     class DevicesScene : public BaseScene {
     public:
-        DevicesScene(View &view, DeviceManager & deviceManager) : 
+        DevicesScene(View &view, DeviceManager & deviceManager, SceneController<VirtualView, Encoder, Bounce2::Button> & sceneController) : 
             BaseScene(
                 _bmp_devices_on, 
                 _bmp_devices_off,
                 16, 16), 
             _view(view),
-            _settingsMenu(view, 0, 0, 128, 128, Gold, ST7735_BLACK),
+            _settingsMenu(view, 128, 128, 0, 0, Gold, ST7735_BLACK),
             _settingMenuItems {
                 new DevicesSceneAddDeviceMenuItem(
                     _settingsMenu,
                     std::bind( &DevicesScene::ShowSelectDeviceTypeDialog, this ))
             },
             _deviceManager(deviceManager),
-            _selectDeviceDialog(nullptr)
+            _selectDeviceDialog(nullptr),
+            _sceneController(sceneController)
         {
             _settingsMenu.AddControl(_settingMenuItems[0]);
         }
@@ -184,8 +186,10 @@ namespace newdigate {
             if (_selectDeviceDialog == nullptr) {
                 _selectDeviceDialog = new SelectDeviceDialog(_view, _deviceManager);
                 _selectDeviceDialog->NeedsUpdate = true;
+                _sceneController.AddDialog(_selectDeviceDialog);
             } 
         }
+
 
     private:
         View & _view;
@@ -193,6 +197,7 @@ namespace newdigate {
         std::vector<TeensyMenuItem*> _settingMenuItems;
         DeviceManager & _deviceManager;
         SelectDeviceDialog  * _selectDeviceDialog;
+        SceneController<VirtualView, Encoder, Bounce2::Button> &_sceneController;
     };
 
 }

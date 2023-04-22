@@ -106,7 +106,7 @@ newdigate::WavePreviewBuilder _wavePreviewBuilder(sd);
 
 #define NUM_SETTINGS_MENU_ITEMS 2
 const uint16_t Oxford_blue3 = 0x0109;
-TeensyMenu settingsMenu = TeensyMenu( _display, 0, 0, 128, 128, Oxford_blue3, ST7735_BLACK );
+TeensyMenu settingsMenu = TeensyMenu( _virtualDisplay, 128, 128, 0, 0, Oxford_blue3, ST7735_BLACK );
 TeensyMenuItem settingMenuItems[NUM_SETTINGS_MENU_ITEMS] = {
 /*
             View &view, 
@@ -148,9 +148,9 @@ void DrawSettingsMenuItem0(View *v) {
 newdigate::DeviceManager deviceManager = newdigate::DeviceManager();
 newdigate::DirectoryFileNameCache directoryFileNameCache(sd);
 
-newdigate::EditScene editScene(model, _display, directoryFileNameCache, sd, _sampler);
+newdigate::EditScene editScene(model, _virtualDisplay, directoryFileNameCache, sd, _sampler);
 
-newdigate::DevicesScene * devicesScene = new newdigate::DevicesScene(_display, deviceManager);
+newdigate::DevicesScene * devicesScene = new newdigate::DevicesScene(_virtualDisplay, deviceManager, sceneController);
 
 Scene settingsScene = Scene(
                         _bmp_settings_on, 
@@ -165,7 +165,7 @@ Scene settingsScene = Scene(
 
                         // void initScreen()
                         [] { 
-                          _display.fillScreen(ST7735_BLUE); 
+                          _virtualDisplay.fillScreen(ST7735_BLUE); 
                           settingsMenu.NeedsUpdate = true; 
                           pianoDisplay1.displayNeedsUpdating();
                         },
@@ -204,7 +204,7 @@ Scene playScene = Scene(
                         _bmp_play_off, 
                         16, 16,
                         [] { }, 
-                        [] { _display.fillScreen(ST7735_GREEN); });                
+                        [] { _virtualDisplay.fillScreen(ST7735_GREEN); });                
 
 void handleNoteOn(uint8_t channel, uint8_t pitch, uint8_t velocity);
 void handleNoteOff(uint8_t channel, uint8_t pitch, uint8_t velocity);
@@ -238,7 +238,7 @@ void setup() {
   //Display.initR(INITR_GREENTAB);
   _display.setRotation(1);
 
-  _display.fillScreen(ST7735_BLACK);
+  _virtualDisplay.fillScreen(ST7735_BLACK);
 
   sceneController.AddScene(&settingsScene);
   sceneController.AddScene(devicesScene);
