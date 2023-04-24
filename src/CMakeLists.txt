@@ -6,7 +6,7 @@ set(SOURCE_FILES
         TeensyAudioLaunchCtrl.cpp)
 
 set(HEADER_FILES
-        TeensyAudioLaunchCtrl.h)
+        Device.h)
 
 if (NOT DEFINED TEENSY_VERSION)
         SET(CMAKE_VERBOSE_MAKEFILE 1)

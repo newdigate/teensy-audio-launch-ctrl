@@ -145,7 +145,8 @@ void DrawSettingsMenuItem0(View *v) {
   settingMenuItems[0].drawString("trigger pad:  ", 0, 0);
 }
 
-newdigate::DeviceManager deviceManager = newdigate::DeviceManager();
+newdigate::DeviceFactory deviceFactory = newdigate::DeviceFactory(model, _polyphony);
+newdigate::DeviceManager deviceManager = newdigate::DeviceManager(deviceFactory);
 newdigate::DirectoryFileNameCache directoryFileNameCache(sd);
 
 newdigate::EditScene editScene(model, _virtualDisplay, directoryFileNameCache, sd, _sampler);

@@ -7,77 +7,14 @@
 
 #include <Encoder.h>
 #include <Bounce2.h>
-
+#include "Device.h"
 #include "icons.h"
 #include "scenecontroller.h"
 #include "teensy_controls.h"
+#include "MySampler.h"
 
 namespace newdigate {
     class MidiRouter;
-
-    class Device {
-    public:
-        Device() :  _outputConnections() {
-        }
-
-        Device(const Device &device) = delete;
-
-        virtual ~Device() {
-        }
-
-        virtual void noteEvent(uint8_t noteNumber, uint8_t noteChannel, uint8_t velocity) = 0;   
-        virtual void ccEvent(uint8_t ccNumber, uint8_t ccChannel, uint8_t value) = 0;
-
-        void broadcastNoteEvent(uint8_t noteNumber, uint8_t noteChannel, uint8_t velocity) {
-            for (auto && device : _outputConnections) {
-                device->noteEvent(noteNumber, noteChannel, velocity);
-            }
-        }
-    protected:
-        friend class MidiRouter;
-        std::vector<Device*> _outputConnections;  
-    };
-
-
-    class MidiRouter {
-    public:
-        MidiRouter() {
-        }
-
-        MidiRouter(const MidiRouter &router) = delete;
-
-        virtual ~MidiRouter() {
-        }
-
-        void Connect(Device *input, Device *output){
-            input->_outputConnections.push_back(output);
-        }
-    };
-
-    class DeviceManager {
-    public:
-        DeviceManager() : 
-            _devices() {
-        }
-
-        DeviceManager(const DeviceManager &deviceManager) = delete;
-
-        virtual ~DeviceManager() {
-        }
-
-        int GetNumberOfAvailableDeviceTypes() {
-            return _deviceTypeNames.size();
-        }
-
-        const char* GetNameOfDeviceTypeNumber(int deviceTypeNumner) {
-            return _deviceTypeNames[deviceTypeNumner];
-        }
-
-    private:
-        std::vector<Device *> _devices;
-        static const std::vector<const char*> _deviceTypeNames; 
-    };
-    const std::vector<const char*> DeviceManager::_deviceTypeNames = { "SD sampler", "Pattern Sequencer", "Step Sequencer"}; 
 
     class SelectDeviceDialog : public TeensyMenu {
     public:
@@ -188,6 +125,62 @@ namespace newdigate {
         std::function<void()> _fnMenuItemClicked;
     };
 
+    class DevicePreviewControl : public TeensyControl {
+    public:
+        DevicePreviewControl(
+            View &view, 
+            Device *device) : TeensyControl(view, nullptr, 128, 16, 0, 0)
+        {
+        }
+
+        void Update() override {
+        }
+
+        void ValueScroll(bool forward) override { 
+        }
+        
+        bool MidiNoteEvent(bool noteDown, uint8_t channel, uint8_t pitch, uint8_t velocity) override { 
+            return false;
+        }
+
+        bool MidiCCEvent(uint8_t channel, uint8_t data1, uint8_t data2) override {
+            return false;
+        }
+
+        void ButtonDown(uint8_t buttonNumber) override {
+        }
+
+        void IncreaseSelectedIndex() override {
+        }
+
+        void DecreaseSelectedIndex() override {
+        }
+
+    protected:
+        std::function<void()> f_update = nullptr;
+        std::vector<TeensyControl *> _children;
+    };
+
+    class DevicePreviewControlBuilder {
+    public:
+        DevicePreviewControlBuilder() { }
+
+        DevicePreviewControlBuilder( const DevicePreviewControlBuilder &devicePreviewControlBuilder) = delete;
+        
+        virtual ~DevicePreviewControlBuilder() {}
+
+        TeensyControl *CreatePreviewControl(Device *device, View &view) {
+            TeensyControl *result;
+            switch (device->GetDeviceType())
+            {
+                case DeviceType::SDLoopSampler: 
+                    result = new DevicePreviewControl(view, device);
+                    break;
+            }
+            return result;
+        }
+    };
+
     class DevicesScene : public BaseScene {
     public:
         DevicesScene(View &view, DeviceManager & deviceManager, SceneController<VirtualView, Encoder, Bounce2::Button> & sceneController) : 
@@ -204,9 +197,11 @@ namespace newdigate {
             },
             _deviceManager(deviceManager),
             _selectDeviceDialog(nullptr),
-            _sceneController(sceneController)
+            _sceneController(sceneController),
+            _devicePreviewControlBuilder()
         {
             _settingsMenu.AddControl(_settingMenuItems[0]);
+            _deviceManager.SubscribeOnDeviceAddedCallback( std::bind(&DevicesScene::OnDeviceAdded, this, std::placeholders::_1));
         }
 
         virtual ~DevicesScene() {
@@ -261,6 +256,14 @@ namespace newdigate {
             _selectDeviceDialog = nullptr;
         }
 
+        void OnDeviceAdded(Device * device) {
+            switch (device->GetDeviceType()) {
+                case DeviceType::SDLoopSampler : {
+                    _settingsMenu.AddControl(_devicePreviewControlBuilder.CreatePreviewControl(device, _settingsMenu));
+                    break;
+                }
+            }
+        }
     private:
         View & _view;
         TeensyMenu _settingsMenu;
@@ -268,6 +271,7 @@ namespace newdigate {
         DeviceManager & _deviceManager;
         SelectDeviceDialog  * _selectDeviceDialog;
         SceneController<VirtualView, Encoder, Bounce2::Button> &_sceneController;
+        DevicePreviewControlBuilder _devicePreviewControlBuilder;
     };
 
 }
