@@ -47,6 +47,7 @@ else()
     DeclareAndFetch(teensy_variable_playback    https://github.com/newdigate/teensy-variable-playback master src)
     DeclareAndFetch(teensy_polyphony            https://github.com/newdigate/teensy-polyphony main src)
     DeclareAndFetch(arduino_tftpianoview        https://github.com/newdigate/arduino-tftpianoview master src)
+    DeclareAndFetchNoSource(pdx_cs_sound_wavs   https://github.com/pdx-cs-sound/wavs main)
 
     add_subdirectory(src)
     #add_subdirectory(extras/ILI9341_t3_controls)

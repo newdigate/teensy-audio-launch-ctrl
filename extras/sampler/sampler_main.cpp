@@ -28,7 +28,7 @@
 
 #define xxxstr(x) xxstr(x)
 #define xxstr(x) #x
-SDClass sd = SDClass(xxxstr(CMAKE_CURRENT_SOURCE_DIR)"/Users/nicholasnewdigate/Development/sampler");
+SDClass sd = SDClass(xxxstr(pdx_cs_sound_wavs_SOURCE_DIR));
 
 // GUItool: begin automatically generated code
 AudioPlaySdResmp      voice1(sd);         //xy=375,182
