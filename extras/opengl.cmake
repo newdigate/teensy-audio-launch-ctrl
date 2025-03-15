@@ -6,7 +6,7 @@ find_package(PkgConfig REQUIRED)
 #brew install glfw
 pkg_search_module(glfw REQUIRED glfw3)
 include_directories(${glfw_INCLUDE_DIRS})
-
+message(INFO "OpenGL Build! " ${glfw_INCLUDE_DIRS} )
 pkg_search_module(glew REQUIRED glew)
 include_directories(${glew_INCLUDE_DIRS})
 if(WIN32)

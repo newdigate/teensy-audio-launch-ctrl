@@ -17,20 +17,20 @@
 #include "DirectoryFileNameCache.h"
 #include "WavePreview.h"
 #include "MySampler.h"
-
 namespace newdigate {
 
     const int NUM_EDIT_MENU_ITEMS = 7;
     const uint16_t UA_blue = 0x01B5;
     const uint16_t Gold = 0xFEA0;
     const uint16_t Canary = 0xFFF3;
+    const uint16_t White = 0xFFF3;
     const uint16_t Royal_blue_dark2 = 0x012C;
     const uint16_t Oxford_blue2 = 0x0109;
 
     class EditScene : public BaseScene {
     public:
         EditScene(samplermodel<sdsampleplayernote> &samplerModel, View &view, DirectoryFileNameCache &directoryFileNameCache, SDClass &sd, MyLoopSampler &sampler) : 
-            BaseScene(
+            BaseScene(view, 128, 128, 0, 0,
                 _bmp_edit_on, 
                 _bmp_edit_off,
                 16, 16), 
@@ -49,7 +49,7 @@ namespace newdigate {
                     if (_currentNote == nullptr) {
                         _triggerNoteControl.setTextColor(Canary);
                         _triggerNoteControl.drawString("Select a note...", 8, 4);
-                        _triggerNoteControl.setTextColor(RGB565_WHITE);
+                        _triggerNoteControl.setTextColor(White);
                         return;
                     }
 
@@ -72,7 +72,7 @@ namespace newdigate {
                     _triggerNoteControl.setTextColor(Gold);
                     _triggerNoteControl.drawString(":", 24, 4);
                     _triggerNoteControl.drawNumber(_currentNote->_samplerNoteChannel, 32, 4);
-                    _triggerNoteControl.setTextColor(RGB565_WHITE);
+                    _triggerNoteControl.setTextColor(White);
                     //_pianoDisplay.displayNeedsUpdating();
                 }
              }, 128, 15, 0, 19),              //     TeensyControl(View &view, std::function<void()> updateFn, unsigned int width, unsigned int height, unsigned int x unsigned int y)
@@ -80,7 +80,7 @@ namespace newdigate {
                 TeensyMenuItem(_settingsMenu, 
                     [&] (View *v) 
                     {   
-                        if (!_sampleMenuItemNeedsUpdate && !_settingsMenu.NeedsUpdate) 
+                        if (!_sampleMenuItemNeedsUpdate && !_settingsMenu.NeedsRedraw())
                             return;
                         
                         _sampleMenuItemNeedsUpdate = false;
@@ -98,7 +98,7 @@ namespace newdigate {
                             if (_sampleMenuItemPrevFileName == nullptr || _sampleMenuItemPrevFileName != _currentNote->_filename )
                                 _wavePreview.Show(_currentNote->_filename);
                             else   
-                                _wavePreview.Update();                              
+                                _wavePreview.Update(millis());
                         } 
                     }, 
                     24,
@@ -212,29 +212,29 @@ namespace newdigate {
             _wavePreview.Reset();
         }
 
-        void Update() override {
-            _triggerNoteControl.Update();
-            _wavePreview.Update();
-            _settingsMenu.Update();
+        void Update(unsigned millis) override {
+            _triggerNoteControl.Update(millis);
+            _wavePreview.Update(millis);
+            _settingsMenu.Update(millis);
         }
 
-        void InitScreen() override {
+        void Initialize() override {
             _view.fillScreen(ST7735_BLACK);
-            _settingsMenu.NeedsUpdate = true; 
+            _settingsMenu.ForceRedraw();
             _triggerNoteControlNeedsUpdate = true;
             _wavePreview.ClearBackground();
             if (_currentNote != nullptr && _currentNote->_filename != nullptr) {
                 _wavePreview.Show(_currentNote->_filename);
-                _wavePreview.Update();
+                _wavePreview.Update(millis());
                 AddProgressSubscription(_currentNote->_samplerNoteNumber, _currentNote->_samplerNoteChannel, _currentNote->_filename);
             } 
         }
 
-        void UninitScreen() override {
+        void Uninitialize() override {
             RemoveAllProgressSubscriptions();
         }
 
-        void ButtonPressed(unsigned index) override {
+        void ButtonDown(uint8_t index) override {
             if (_currentNote == nullptr || _currentNote->_filename == nullptr)
                 return;
             
@@ -242,25 +242,23 @@ namespace newdigate {
 
         }
 
-        void Rotary1Changed(bool forward) override {
-            if (forward) 
-                _settingsMenu.IncreaseSelectedIndex(); 
-            else 
-                _settingsMenu.DecreaseSelectedIndex(); 
-        }
-
-        void Rotary2Changed(bool forward) override {
+        void ValueScroll(bool forward) override {
             _settingsMenu.ValueScroll(forward);
         }
 
-        bool HandleNoteOnOff(bool noteDown, uint8_t channel, uint8_t pitch, uint8_t velocity) override { 
-            if (noteDown == false)
-                return true;
-            
+        void IndexScroll(bool forward) override {
+            _settingsMenu.IndexScroll(forward);
+        }
+        void NoteOff(uint8_t channel, uint8_t pitch, uint8_t velocity) override {
+
+        }
+
+        void NoteOn(uint8_t channel, uint8_t pitch, uint8_t velocity) override {
+
             if (_currentNote != nullptr && channel == _currentNote->_samplerNoteChannel && pitch == _currentNote->_samplerNoteNumber)
             {
                 // _currentNote didnt change
-                return false;
+                return;
             }
 
             RemoveAllProgressSubscriptions();
@@ -292,10 +290,9 @@ namespace newdigate {
                 _wavePreview.ClearBackground();
             }
 
-            _settingsMenu.NeedsUpdate = true; 
-            _settingsMenu.Update();
+            _settingsMenu.ForceRedraw();
+            _settingsMenu.Update(millis());
             _triggerNoteControlNeedsUpdate = true;
-            return true; 
         }
 
         void AddProgressSubscription(uint8_t noteNumber, uint8_t noteChannel, char *filename) {
@@ -319,8 +316,7 @@ namespace newdigate {
             _wavePreview.CreateOrUpdateProgressIndicator(index, progress);
         }
 
-        bool HandleControlChange(uint8_t channel, uint8_t data1, uint8_t data2) override { 
-            return false; 
+        void ControlChange(uint8_t channel, uint8_t data1, uint8_t data2) override {
         }
 
     private:
@@ -331,7 +327,7 @@ namespace newdigate {
         TeensyControl _triggerNoteControl;
         TeensyMenuItem _settingMenuItems[NUM_EDIT_MENU_ITEMS];
         sdsampleplayernote *_currentNote;
-        TFTPianoDisplay<View> _pianoDisplay; //tft, byte octaves, byte startOctave, byte x, byte y
+        TFTPianoDisplay _pianoDisplay; //tft, byte octaves, byte startOctave, byte x, byte y
         DirectoryFileNameCache& _directoryFileNameCache;
         WavePreview _wavePreview;
         MyLoopSampler &_sampler;

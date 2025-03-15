@@ -21,12 +21,10 @@ namespace newdigate {
         SelectDeviceDialog(
             View &view, 
             DeviceManager & deviceManager, 
-            SceneController<VirtualView, Encoder, Bounce2::Button> &sceneController,
             std::function<void()> onClose
         ) : 
             TeensyMenu(view, 100, 100, 13, 13, ST7735_BLACK, Gold),
             _selectionMenuItems(),
-            _sceneController(sceneController),
             _onClose(onClose)
         {
             for (int i = 0; i < deviceManager.GetNumberOfAvailableDeviceTypes(); i++) {
@@ -54,7 +52,6 @@ namespace newdigate {
         }
     private:
         std::vector<TeensyMenuItem*> _selectionMenuItems;
-        SceneController<VirtualView, Encoder, Bounce2::Button> &_sceneController;
         std::function<void()> _onClose;
 
         void menuItemDraw(View *v, const char * label){
@@ -75,7 +72,6 @@ namespace newdigate {
 
         void buttonDownEvent(uint8_t buttonNumber, int selectedIndex) {
             Serial.printf("device selected: %d\n", selectedIndex);
-            _sceneController.PopDialog();
             if (_onClose != nullptr) {
                 _onClose();
             }
@@ -131,29 +127,6 @@ namespace newdigate {
             View &view, 
             Device *device) : TeensyControl(view, nullptr, 128, 16, 0, 0)
         {
-        }
-
-        void Update() override {
-        }
-
-        void ValueScroll(bool forward) override { 
-        }
-        
-        bool MidiNoteEvent(bool noteDown, uint8_t channel, uint8_t pitch, uint8_t velocity) override { 
-            return false;
-        }
-
-        bool MidiCCEvent(uint8_t channel, uint8_t data1, uint8_t data2) override {
-            return false;
-        }
-
-        void ButtonDown(uint8_t buttonNumber) override {
-        }
-
-        void IncreaseSelectedIndex() override {
-        }
-
-        void DecreaseSelectedIndex() override {
         }
 
     protected:
@@ -270,7 +243,7 @@ namespace newdigate {
         std::vector<TeensyMenuItem*> _settingMenuItems;
         DeviceManager & _deviceManager;
         SelectDeviceDialog  * _selectDeviceDialog;
-        SceneController<VirtualView, Encoder, Bounce2::Button> &_sceneController;
+        SceneHostControl<Encoder, Bounce2::Button, TMIDI> &_sceneController;
         DevicePreviewControlBuilder _devicePreviewControlBuilder;
     };
 

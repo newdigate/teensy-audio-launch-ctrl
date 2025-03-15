@@ -24,9 +24,11 @@
 #include <TeensyVariablePlayback.h>
 #include "output_soundio.h"
 #include "MySampler.h"
-#include "DevicesScene.h"
+//#include "DevicesScene.h"
 
-SDClass sd = SDClass("/Users/nicholasnewdigate/Development/sampler");
+#define xxxstr(x) xxstr(x)
+#define xxstr(x) #x
+SDClass sd = SDClass(xxxstr(CMAKE_CURRENT_SOURCE_DIR)"/Users/nicholasnewdigate/Development/sampler");
 
 // GUItool: begin automatically generated code
 AudioPlaySdResmp      voice1(sd);         //xy=375,182
@@ -88,7 +90,7 @@ Button button3 = Button();
 Encoder encoderLeftRight;
 Encoder encoderUpDown;
 typedef st7735_opengl<Encoder, Button> st7735_ogl;
-typedef SceneController< VirtualView, Encoder, Button> MySceneController;
+typedef SceneHostControl< Encoder, Button, RtMidiTransport<RtMidiMIDI>> MySceneController;
 
 audiovoicepolyphonic<AudioPlaySdResmp> _polyphony;
 
@@ -97,7 +99,7 @@ newdigate::MyLoopSampler _sampler = newdigate::MyLoopSampler(model, _polyphony);
 st7735_ogl _display(true, 0, &encoderLeftRight, &encoderUpDown, &button, &button2, &button3);
 
 VirtualView _virtualDisplay(_display, 0, 0, 128, 128);
-MySceneController sceneController(_virtualDisplay, encoderLeftRight, encoderUpDown, button, button2, button3);
+MySceneController sceneController(_virtualDisplay, 128, 128, 0, 0, encoderLeftRight, encoderUpDown, button, button2, button3, MIDI);
 
 void DrawSettingsMenuItem0(View *v);
 
@@ -137,8 +139,8 @@ TeensyMenuItem settingMenuItems[NUM_SETTINGS_MENU_ITEMS] = {
     }),
   TeensyMenuItem(settingsMenu, [] (View *v) {v->drawString("xxx", 0, 0);}, 8)
 };
-
-TFTPianoDisplay pianoDisplay1(settingMenuItems[0], 3, 2, 0, 9); //tft, byte octaves, byte startOctave, byte x, byte y
+// unsigned char octaves, unsigned char startOctave, unsigned char x, unsigned char y, unsigned char size = 6
+TFTPianoDisplay pianoDisplay1(_display, 3, 2, 0, 9); //tft, byte octaves, byte startOctave, byte x, byte y
 
 void DrawSettingsMenuItem0(View *v) {
   pianoDisplay1.drawFullPiano();
@@ -151,23 +153,23 @@ newdigate::DirectoryFileNameCache directoryFileNameCache(sd);
 
 newdigate::EditScene editScene(model, _virtualDisplay, directoryFileNameCache, sd, _sampler);
 
-newdigate::DevicesScene * devicesScene = new newdigate::DevicesScene(_virtualDisplay, deviceManager, sceneController);
+//newdigate::DevicesScene * devicesScene = new newdigate::DevicesScene(_virtualDisplay, deviceManager, sceneController);
 
-Scene settingsScene = Scene(
-                        _bmp_settings_on, 
+Scene settingsScene = Scene(_display, 128, 128, 0, 0,
+                        _bmp_settings_on,
                         _bmp_settings_off, 
                         16, 16, 
 
                         // void update()
-                        [] { 
-                          settingsMenu.Update();
+                        [] (unsigned milliseconds) {
+                          settingsMenu.Update(milliseconds);
                           pianoDisplay1.drawPiano();
                         }, 
 
                         // void initScreen()
                         [] { 
                           _virtualDisplay.fillScreen(ST7735_BLUE); 
-                          settingsMenu.NeedsUpdate = true; 
+                          settingsMenu.ForceRedraw();
                           pianoDisplay1.displayNeedsUpdating();
                         },
 
@@ -183,11 +185,8 @@ Scene settingsScene = Scene(
 
                         // void rotary1Changed(bool forward)
                         [] (bool forward) { 
-                          if (forward) 
-                            settingsMenu.IncreaseSelectedIndex(); 
-                          else 
-                            settingsMenu.DecreaseSelectedIndex(); 
-                        }, 
+                            settingsMenu.IndexScroll(forward);
+                        },
 
                         // void rotary1Changed(bool forward)
                         [] (bool forward) {
@@ -197,14 +196,18 @@ Scene settingsScene = Scene(
                         // bool midiNoteEvent(bool noteDown, uint8_t channel, uint8_t pitch, uint8_t velocity)
                         [] (bool noteDown, uint8_t channel, uint8_t pitch, uint8_t velocity) -> bool {
                           //Serial.println("Midi note down during settings scene...");
-                          return settingsMenu.MidiNoteEvent(noteDown, channel, pitch, velocity);
+                          if (noteDown)
+                               settingsMenu.NoteOn(channel, pitch, velocity);
+                          else
+                              settingsMenu.NoteOff(channel, pitch, velocity);
+                          return true;
                         });
 
-Scene playScene = Scene(
+Scene playScene = Scene(_display, 128, 128, 0, 0,
                         _bmp_play_on, 
                         _bmp_play_off, 
                         16, 16,
-                        [] { }, 
+                        [] (unsigned milliseconds) { },
                         [] { _virtualDisplay.fillScreen(ST7735_GREEN); });                
 
 void handleNoteOn(uint8_t channel, uint8_t pitch, uint8_t velocity);
@@ -242,12 +245,12 @@ void setup() {
   _virtualDisplay.fillScreen(ST7735_BLACK);
 
   sceneController.AddScene(&settingsScene);
-  sceneController.AddScene(devicesScene);
+  //sceneController.AddScene(devicesScene);
   sceneController.AddScene(&editScene);
   sceneController.AddScene(&playScene);
 
   sceneController.SetCurrentSceneIndex(0);
-  sceneController.SetActive(false);
+  sceneController.SetTopMenuActive(false);
 
   for (int i = 0; i < NUM_SETTINGS_MENU_ITEMS; i++) {
     settingsMenu.AddControl(&settingMenuItems[i]);
@@ -272,7 +275,7 @@ void setup() {
 }
 
 void loop() {
-  sceneController.Process();
+  sceneController.Update(millis());
   MIDI.read();
   _sampler.updateProgress();
   _sampler.update();
@@ -295,7 +298,7 @@ void handleNoteOn(uint8_t channel, uint8_t pitch, uint8_t velocity)
 {
     Serial.printf("MIDI IN: handleNoteOn note:%d; channel:%d; \r\n", pitch, channel);
  
-    bool processedMessage = sceneController.MidiNoteUpDown(true, channel, pitch, velocity);
+    sceneController.NoteOn(channel, pitch, velocity);
     //if (processedMessage) return;
     _sampler.trigger(pitch, channel, velocity, true);/*
 
@@ -323,16 +326,12 @@ void handleNoteOn(uint8_t channel, uint8_t pitch, uint8_t velocity)
 
 void handleNoteOff(uint8_t channel, uint8_t pitch, uint8_t velocity)
 {
-
-  if (sceneController.MidiNoteUpDown(false, channel, pitch, velocity)){
-    return;
-  }
-
+  sceneController.NoteOff(channel, pitch, velocity);
   Serial.printf("MIDI IN: handleNoteOff note:%d; channel:%d; \r\n", pitch, channel);
   _sampler.trigger(pitch, channel, velocity, false);
 }
 
 void handleControlChange(uint8_t channel, uint8_t data1, uint8_t data2) 
 {
-  sceneController.MidiControlChange(channel, data1, data2);
+  sceneController.ControlChange(channel, data1, data2);
 }

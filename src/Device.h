@@ -2,8 +2,9 @@
 #define TEENSY_SAMPLER_DEVICE_H
 
 #include <Arduino.h>
-#include "MySampler.h"
+#include <map>
 #include "sdsampleplayernote.h"
+#include "MySampler.h"
 
 namespace newdigate {
 
